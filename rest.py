@@ -3,12 +3,11 @@ from flask import Flask, jsonify, request, render_template
 from flask_cors import CORS
 from multiprocessing import Value
 
-# import block
-# import node
+import block
+import node
 from blockchain import Blockchain
-# import wallet
+import wallet
 # import transaction
-# import wallet
 
 
 ### JUST A BASIC EXAMPLE OF A REST API WITH FLASK
@@ -36,10 +35,10 @@ def get_transactions():
 def register_nodes():
     if request is None:
         return "Error: Please supply a valid Node", 400
-    node = request.json
-    if node is None:
+    data = request.json
+    if data is None:
         return "Error: Please supply a valid Node", 400
-    print("Add node with public_key", node["public_key"])
+    print("Add node with public_key", data["public_key"])
     with nodeCount.get_lock():
         nodeCount.value += 1
     # for node in nodes:
