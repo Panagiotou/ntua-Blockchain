@@ -22,7 +22,7 @@ class Wallet:
 		new_key = RSA.generate(bits, e=65537)
 		self.public_key = new_key.publickey().exportKey()
 		self.private_key = new_key.exportKey()
-		#self_address
+		self.address = self.public_key
 		#self.transactions
 
 	#def balance():

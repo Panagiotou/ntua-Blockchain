@@ -3,11 +3,12 @@ from flask import Flask, jsonify, request, render_template
 from flask_cors import CORS
 from multiprocessing import Value
 
-import block
-import node
+from block import Block
+from node import Node
 from blockchain import Blockchain
-import wallet
-# import transaction
+from wallet import Wallet
+from transaction import Transaction
+import transaction
 
 
 ### JUST A BASIC EXAMPLE OF A REST API WITH FLASK
@@ -60,5 +61,23 @@ if __name__ == '__main__':
     parser.add_argument('-p', '--port', default=5000, type=int, help='port to listen on')
     args = parser.parse_args()
     port = args.port
+
+    # create bootstrap node
+    node = Node()
+    node.id = 0
+    bootstrap_key = node.wallet.public_key
+    bootstrap_private_key = node.wallet.private_key
+
+    # create genesis block
+    genesis_block = Block()
+    genesis_block.previousHash=1
+    genesis_block.nonce=0
+
+    # first transaction
+    # η λίστα από transactions περιλαμβάνει μόνο ένα transaction που δίνει στον bootsrap κόμβο 100*n ΝΒC coins από την wallet διεύθυνση 0
+    #genesis_xblock.listOfTransactions
+    amount = 100*N
+    node.create_transaction(0, bootstrap_private_key, bootstrap_key, amount)
+
 
     app.run(host='127.0.0.1', port=port, debug=True)

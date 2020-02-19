@@ -15,29 +15,23 @@ from flask import Flask, jsonify, request, render_template
 class Transaction:
 
     def __init__(self, sender_address, sender_private_key, recipient_address, value):
-
-
         ##set
-
-
-
-        #self.sender_address: To public key του wallet από το οποίο προέρχονται τα χρήματα
-        #self.receiver_address: To public key του wallet στο οποίο θα καταλήξουν τα χρήματα
-        #self.amount: το ποσό που θα μεταφερθεί
-        #self.transaction_id: το hash του transaction
-        #self.transaction_inputs: λίστα από Transaction Input 
-        #self.transaction_outputs: λίστα από Transaction Output 
-        #selfSignature
-
-
-    
-
-
-    def to_dict(self):
+        self.sender_address = sender_address
+        self.receiver_address = recipient_address
+        self.amount = value
+        self.transaction_id = SHA.new((str(sender_address)+str(recipient_address)+str(value)).encode())# το hash του transaction
+        self.transaction_inputs = [] # λίστα από Transaction Input
+        self.transaction_outputs = [] # λίστα από Transaction Output
+        self.signature = self.sign_transaction(sender_private_key)
         
 
-    def sign_transaction(self):
+    # def to_dict(self):
+
+
+    def sign_transaction(self, private_key):
         """
         Sign transaction with private key
         """
-       
+        signer = PKCS1_v1_5.new(private_key)
+        signature = signer.sign(self.transaction_id)
+        return signature
