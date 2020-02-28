@@ -11,12 +11,11 @@ class Node:
 		##set
 
 		#self.chain
-		self.current_id_count = None
-		self.id = None
+		self.current_id_count = None # +1 every time a node is added
+		self.id = None # 0...n-1
 		self.NBCs = None
-		self.wallet = None
-
-		#slef.ring[]   #here we store information for every node, as its id, its address (ip:port) its public key and its balance
+		self.wallet = None # created with create_wallet()
+		self.ring[]   #here we store information for every node, as its id, its address (ip:port) its public key and its balance
 		self.create_wallet()
 
 
@@ -31,15 +30,12 @@ class Node:
 	# def register_node_to_ring():
 	# 	#add this node to the ring, only the bootstrap node can add a node to the ring after checking his wallet and ip:port address
 	# 	#bottstrap node informs all other nodes and gives the request node an id and 100 NBCs
-	#
-	#
+
+
 	def create_transaction(self, sender, sender_private_key, receiver, amount):
 		transaction = Transaction(sender, sender_private_key, receiver, amount)
-		# transaction.transaction_inputs =
-
-		# Δημιουργείται ένα νέο transaction που περιέχει όλα τα στοιχεία που απαιτούνται. Εδώ το πεδίο
-		# transaction_inputs γεμίζει με τα Transaction Input που περιέχουν τα ids των UTXOs που απαιτούνται
-		# για να συμπληρωθεί το ποσό που θέλουμενα ξοέψουμε.
+		# transaction.transaction_inputs = ...
+		return transaction
 
 	 	# remember to broadcast it
 

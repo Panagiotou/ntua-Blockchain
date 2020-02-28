@@ -19,11 +19,11 @@ class Transaction:
         self.sender_address = sender_address
         self.receiver_address = recipient_address
         self.amount = value
-        self.transaction_id = SHA.new((str(sender_address)+str(recipient_address)+str(value)).encode())# το hash του transaction
+        self.transaction_id = SHA.new((str(sender_address)+str(recipient_address)+str(value) + str(Crypto.Random.get_random_bytes(10))).encode())# το hash του transaction
         self.transaction_inputs = [] # λίστα από Transaction Input
-        self.transaction_outputs = [] # λίστα από Transaction Output
+        self.transaction_outputs = [self.transaction_id, receiver_address, value] # λίστα από Transaction Output
         self.signature = self.sign_transaction(sender_private_key)
-        
+
 
     # def to_dict(self):
 

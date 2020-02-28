@@ -66,7 +66,6 @@ if __name__ == '__main__':
     node = Node()
     node.id = 0
     bootstrap_key = node.wallet.public_key
-    bootstrap_private_key = node.wallet.private_key
 
     # create genesis block
     genesis_block = Block()
@@ -74,10 +73,9 @@ if __name__ == '__main__':
     genesis_block.nonce=0
 
     # first transaction
-    # η λίστα από transactions περιλαμβάνει μόνο ένα transaction που δίνει στον bootsrap κόμβο 100*n ΝΒC coins από την wallet διεύθυνση 0
-    #genesis_xblock.listOfTransactions
     amount = 100*N
-    node.create_transaction(0, bootstrap_private_key, bootstrap_key, amount)
-
+    first_transaction = node.create_transaction(0, None, bootstrap_key, amount)
+    genesis_block.listOfTransactions.append(first_transaction)
+    # first transaction does not have a previousOutputId, transaction_inputs = []
 
     app.run(host='127.0.0.1', port=port, debug=True)
