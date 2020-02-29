@@ -32,10 +32,21 @@ def get_transactions():
     response = {'transactions': transactions}
     return jsonify(response), 200
 
-def ContactBootstrapNode(baseurl, host):
-    node = Node()
+@app.route('/UpdateRing', methods=['POST'])
+def UpdateRing():
+    # print("request", request.json)
+    if request is None:
+        return "Error: Please supply a valid Ring", 400
+    data = request.json
+    if data is None:
+        return "Error: Please supply a valid Ring", 400
+    node.ring = list(data.values())
+
+    return "Ring Updated for node {}".format(node.id), 200
+
+def ContactBootstrapNode(baseurl, host, port):
     public_key = node.wallet.public_key
-    load = {'public_key': str(public_key) }
+    load = {'public_key': str(public_key), 'ip': host, 'port': port }
     r = requests.post(baseurl + "nodes/register", json = load)
     if(not r.status_code == 200):
         print(r.text)
@@ -49,8 +60,10 @@ def ContactBootstrapNode(baseurl, host):
 
 if __name__ == '__main__':
     from argparse import ArgumentParser
-
+    node = Node()
+    
     baseurl = 'http://{}:{}/'.format("127.0.0.1","5000")
     host = sys.argv[1]
-    ContactBootstrapNode(baseurl, host)
-    app.run(host=host, port=5000, debug=True, use_reloader=False)
+    port = 5000
+    ContactBootstrapNode(baseurl, host, port)
+    app.run(host=host, port=port, debug=True, use_reloader=False)

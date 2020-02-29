@@ -10,8 +10,8 @@ from transaction import Transaction
 import transaction
 import json
 import time
-
-
+from _thread import *
+import threading
 ### JUST A BASIC EXAMPLE OF A REST API WITH FLASK
 
 app = Flask(__name__)
@@ -19,8 +19,29 @@ CORS(app)
 blockchain = Blockchain()
 
 #.......................................................................................
+def BroadcastRing(ring):
+    for r in ring:
+        baseurl = 'http://{}:{}/'.format(r['ip'],r['port'])
+        print(baseurl)
+        ringWithoutSelf = {}
+        u = 0
+        for k in ring:
+            if(not k['ip'] == r['ip']):
+                ringWithoutSelf[str(u)] = k
 
+        load = ringWithoutSelf
 
+        print(baseurl + "UpdateRing")
+
+        while(True):
+            try:
+                r = requests.get(baseurl)
+                r.raise_for_status()
+            except:
+                break
+
+        res = requests.post(baseurl + "UpdateRing", json = load)
+        print(res.text)
 
 # get all transactions in the blockchain
 
@@ -51,22 +72,16 @@ def register_nodes():
     #     time.sleep(10)
     #     print("Node 2 Awake")
 
-    # for node in nodes:
-    #     blockchain.register_node(node)
-    #
-    # response = {
-    #     'message': 'New nodes have been added',
-    #     'total_nodes': list(blockchain.nodes),
-    # }
-    # return jsonify(response), 201
-
     # transaction
     amount = 100
     transaction = node.create_transaction(bootstrap_public_key,  node.wallet.private_key, data['public_key'], amount)
     # add transaction to a block
     # block.listOfTransactions.append(transaction)
     # return jsonify({'id':BootstrapDict['nodeCount']-1, 'bootstrap_public_key':BootstrapDict['bootstrap_public_key']})
-
+    node.ring.append({'id': BootstrapDictInstance['nodeCount']-1, 'ip': data['ip'], 'port': data['port'], 'public_key': data['public_key'], 'balance': 0})
+    if(BootstrapDict['nodeCount'] == BootstrapDict['N']):
+        print(BootstrapDict['nodeCount'])
+        start_new_thread(BroadcastRing,(node.ring,))
     return jsonify({'id':BootstrapDictInstance['nodeCount']-1, 'bootstrap_public_key':BootstrapDictInstance['bootstrap_public_key']})
 
 # run it once fore every node
@@ -82,7 +97,7 @@ if __name__ == '__main__':
     manager = Manager()
 
     BootstrapDict = manager.dict()
-
+#
     N = 5   #Number of nodes i  the system
     nodeCount = 1
     bootstrap_public_key = ""
