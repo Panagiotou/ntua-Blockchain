@@ -24,4 +24,4 @@ for n in range(1, N):
     bootstrap_public_key = rejson["bootstrap_public_key"]
     node.id = myid
 
-    print("I am node number {} from file addNodes.py and my unique id is {}!".format(n, node.id))
+    print("I am node number {} from file addNodes1.py and my unique id is {}!".format(n, node.id))

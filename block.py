@@ -11,7 +11,7 @@ class Block:
 		self.timestamp = None
 		self.hash = None
 		self.nonce = None
-		self.listOfTransactions = None
+		self.listOfTransactions = []
 
 	# def myHash():
 	# 	#calculate self.hash

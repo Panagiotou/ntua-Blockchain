@@ -15,7 +15,7 @@ class Node:
 		self.id = None # 0...n-1
 		self.NBCs = None
 		self.wallet = None # created with create_wallet()
-		self.ring[]   #here we store information for every node, as its id, its address (ip:port) its public key and its balance
+		self.ring = []   #here we store information for every node, as its id, its address (ip:port) its public key and its balance
 		self.create_wallet()
 
 
