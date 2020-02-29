@@ -44,12 +44,12 @@ def register_nodes():
     lock = Lock()
     lock.acquire()
     BootstrapDict['nodeCount'] += 1
-    # BootstrapDictInstance = BootstrapDict.copy()
+    BootstrapDictInstance = BootstrapDict.copy()
     lock.release()
-    if(BootstrapDict['nodeCount'] == 2):
-        print("Node 2 Sleeping")
-        time.sleep(10)
-        print("Node 2 Awake")
+    # if(BootstrapDict['nodeCount'] == 2):
+    #     print("Node 2 Sleeping")
+    #     time.sleep(10)
+    #     print("Node 2 Awake")
 
     # for node in nodes:
     #     blockchain.register_node(node)
@@ -65,9 +65,9 @@ def register_nodes():
     transaction = node.create_transaction(bootstrap_public_key,  node.wallet.private_key, data['public_key'], amount)
     # add transaction to a block
     # block.listOfTransactions.append(transaction)
-    return jsonify({'id':BootstrapDict['nodeCount']-1, 'bootstrap_public_key':BootstrapDict['bootstrap_public_key']})
+    # return jsonify({'id':BootstrapDict['nodeCount']-1, 'bootstrap_public_key':BootstrapDict['bootstrap_public_key']})
 
-    # return jsonify({'id':BootstrapDictInstance['nodeCount']-1, 'bootstrap_public_key':BootstrapDictInstance['bootstrap_public_key']})
+    return jsonify({'id':BootstrapDictInstance['nodeCount']-1, 'bootstrap_public_key':BootstrapDictInstance['bootstrap_public_key']})
 
 # run it once fore every node
 
@@ -106,4 +106,4 @@ if __name__ == '__main__':
     genesis_block.listOfTransactions.append(first_transaction)
     # first transaction does not have a previousOutputId, transaction_inputs = []
 
-    app.run(host='127.0.0.1', port=port, debug=True)
+    app.run(host='127.0.0.1', port=port, debug=True, use_reloader=False)
