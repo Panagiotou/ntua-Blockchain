@@ -2,6 +2,5 @@ class Blockchain:
     def __init__(self):
         self.chain = []
 
-    def new_block(self):
-        # Creates a new Block and adds it to the chain
-        pass
+    def add_block_to_chain(self, block):
+        self.chain.append(block)

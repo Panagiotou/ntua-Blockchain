@@ -12,17 +12,16 @@ import json
 import time
 from _thread import *
 import threading
+import jsonpickle
 ### JUST A BASIC EXAMPLE OF A REST API WITH FLASK
 
 app = Flask(__name__)
 CORS(app)
-blockchain = Blockchain()
 
 #.......................................................................................
-def BroadcastRing(ring):
+def FirstBroadcast(ring):
     for r in ring:
         baseurl = 'http://{}:{}/'.format(r['ip'],r['port'])
-        print(baseurl)
         ringWithoutSelf = {}
         u = 0
         for k in ring:
@@ -31,8 +30,6 @@ def BroadcastRing(ring):
 
         load = ringWithoutSelf
 
-        print(baseurl + "UpdateRing")
-
         while(True):
             try:
                 r = requests.get(baseurl)
@@ -40,17 +37,16 @@ def BroadcastRing(ring):
             except:
                 break
 
-        res = requests.post(baseurl + "UpdateRing", json = load)
-        print(res.text)
-
+        resRing = requests.post(baseurl + "UpdateRing", json = load)
+        print(resRing.text)
 # get all transactions in the blockchain
 
-@app.route('/transactions/get', methods=['GET'])
-def get_transactions():
-    transactions = blockchain.transactions
-
-    response = {'transactions': transactions}
-    return jsonify(response), 200
+# @app.route('/transactions/get', methods=['GET'])
+# def get_transactions():
+#     transactions = blockchain.transactions
+#
+#     response = {'transactions': transactions}
+#     return jsonify(response), 200
 
 @app.route('/nodes/register', methods=['POST'])
 def register_nodes():
@@ -59,7 +55,7 @@ def register_nodes():
     data = request.json
     if data is None:
         return "Error: Please supply a valid Node", 400
-    # print("Add node with public_key", data["public_key"])
+        
     if(BootstrapDict['nodeCount'] >= BootstrapDict['N']):
         return "Error: System is full", 405
     lock = Lock()
@@ -75,19 +71,22 @@ def register_nodes():
     # transaction
     amount = 100
     transaction = node.create_transaction(bootstrap_public_key,  node.wallet.private_key, data['public_key'], amount)
-    # add transaction to a block
-    # block.listOfTransactions.append(transaction)
-    # return jsonify({'id':BootstrapDict['nodeCount']-1, 'bootstrap_public_key':BootstrapDict['bootstrap_public_key']})
     node.ring.append({'id': BootstrapDictInstance['nodeCount']-1, 'ip': data['ip'], 'port': data['port'], 'public_key': data['public_key'], 'balance': 0})
     if(BootstrapDict['nodeCount'] == BootstrapDict['N']):
-        print(BootstrapDict['nodeCount'])
-        start_new_thread(BroadcastRing,(node.ring,))
-    return jsonify({'id':BootstrapDictInstance['nodeCount']-1, 'bootstrap_public_key':BootstrapDictInstance['bootstrap_public_key']})
+        start_new_thread(FirstBroadcast,(node.ring, ))
+
+    blockchainjson = jsonpickle.encode(blockchain)
+
+    print("Added Node with id {}, to the system".format(BootstrapDictInstance['nodeCount']-1))
+    return jsonify({'id':BootstrapDictInstance['nodeCount']-1, 'bootstrap_public_key':BootstrapDictInstance['bootstrap_public_key'], 'blockchain': blockchainjson})
 
 # run it once fore every node
 
 if __name__ == '__main__':
     from argparse import ArgumentParser
+    BLOCK_CAPACITY = 100
+    blockchain = Blockchain()
+
 
     parser = ArgumentParser()
     parser.add_argument('-p', '--port', default=5000, type=int, help='port to listen on')
@@ -111,14 +110,15 @@ if __name__ == '__main__':
     BootstrapDict['bootstrap_public_key'] = bootstrap_public_key
     BootstrapDict['N'] = N
     # create genesis block
-    genesis_block = Block()
-    genesis_block.previousHash=1
-    genesis_block.nonce=0
-
+    genesis_block = node.create_new_block(0, 1, 0, time.time()) # index = 0, previousHash = 1, nonce = 0
     # first transaction
     amount = 100*N
     first_transaction = node.create_transaction(0, None, bootstrap_public_key, amount)
-    genesis_block.listOfTransactions.append(first_transaction)
-    # first transaction does not have a previousOutputId, transaction_inputs = []
+    node.add_transaction_to_block(first_transaction, genesis_block, BLOCK_CAPACITY)
+    blockchain.add_block_to_chain(genesis_block)
+    print("Genesis block, added to blockchain")
+    # Create Second Block index is 2
+    node.previous_block = genesis_block
+    node.current_block = node.create_new_block(1, genesis_block.currentHash, None, time.time())
 
     app.run(host='127.0.0.1', port=port, debug=True, use_reloader=False)

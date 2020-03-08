@@ -13,6 +13,7 @@ import sys, os
 import requests
 import time
 from node import Node
+import jsonpickle
 ### JUST A BASIC EXAMPLE OF A REST API WITH FLASK
 
 app = Flask(__name__)
@@ -41,8 +42,30 @@ def UpdateRing():
     if data is None:
         return "Error: Please supply a valid Ring", 400
     node.ring = list(data.values())
-
+    print("My ring was updated by bootstrap Node!")
     return "Ring Updated for node {}".format(node.id), 200
+
+@app.route('/ValidateBlock', methods=['POST'])
+def ValidateBlock():
+    # print("request", request.json)
+    if request is None:
+        return "Error: Please supply a valid Block", 400
+    data = request.json
+    if data is None:
+        return "Error: Please supply a valid Block", 400
+
+    block = jsonpickle.decode(data["block"])
+    if(block.index > 0):
+        valid = node.validate_block(block)
+        if(valid):
+            print("Block is Valid")
+            node.add_block_to_chain(block)
+            #TODO run actual transactions
+            return "Block Validated!", 200
+        else:
+            print("Something went wrong, block is invalid")
+            return "Block can not be validated!", 400
+
 
 def ContactBootstrapNode(baseurl, host, port):
     public_key = node.wallet.public_key
@@ -58,10 +81,15 @@ def ContactBootstrapNode(baseurl, host, port):
 
     print("I am node with ip {} and my unique id is {}!".format(host, node.id))
 
+    blockchain = jsonpickle.decode(rejson["blockchain"])
+    node.validate_chain(blockchain)
+    node.chain = blockchain
+    print("Now I can create transactions!")
+
 if __name__ == '__main__':
     from argparse import ArgumentParser
     node = Node()
-    
+
     baseurl = 'http://{}:{}/'.format("127.0.0.1","5000")
     host = sys.argv[1]
     port = 5000

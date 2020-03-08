@@ -1,22 +1,25 @@
 import blockchain
-
+import Crypto
+import Crypto.Random
+from Crypto.Hash import SHA
+from Crypto.PublicKey import RSA
+from Crypto.Signature import PKCS1_v1_5
 
 
 
 class Block:
-	def __init__(self):
+	def __init__(self, index, previousHash, nonce, timestamp):
 		##set
-
-		self.previousHash = None
-		self.timestamp = None
-		self.hash = None
-		self.nonce = None
+		self.index = index
+		self.previousHash = previousHash
+		self.nonce = nonce
+		self.timestamp = timestamp
+		self.currentHash = self.myHash()
 		self.listOfTransactions = []
 
-	# def myHash():
-	# 	#calculate self.hash
+	def myHash(self):
+		self.currentHash = SHA.new((str(self.index)+str(self.previousHash)+str(self.timestamp)+str(self.nonce)).encode())
+		return SHA.new((str(self.index)+str(self.previousHash)+str(self.timestamp)+str(self.nonce)).encode())
 
-
-	#def add_transaction(transaction, blockchain):
-	#def add_transaction(transaction):
-	 	#add a transaction to the block
+	def add_transaction(self, transaction):
+		self.listOfTransactions.append(transaction)
