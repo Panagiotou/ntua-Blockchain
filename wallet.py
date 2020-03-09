@@ -20,8 +20,8 @@ class Wallet:
 		##set
 		bits=2048
 		new_key = RSA.generate(bits, e=65537)
-		self.public_key = new_key.publickey().exportKey()
-		self.private_key = new_key.exportKey()
+		self.private_key = new_key
+		self.public_key = new_key.publickey()
 		self.address = self.public_key
 		#self.transactions
 

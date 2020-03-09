@@ -22,6 +22,9 @@ class Node:
 		self.wallet = None # created with create_wallet()
 		self.ring = []   #here we store information for every node, as its id, its address (ip:port) its public key and its balance
 		self.create_wallet()
+		self.previous_block = None
+		self.current_block = None
+		self.block_capacity = None
 
 
 	def create_new_block(self, index, previousHash, nonce, timestamp):
@@ -34,43 +37,45 @@ class Node:
 	def create_transaction(self, sender, sender_private_key, receiver, amount):
 		transaction = Transaction(sender, sender_private_key, receiver, amount)
 		# transaction.transaction_inputs = ...
+		# self.broadcast_transaction(transaction)
+
 		return transaction
 
-	 	# remember to broadcast it
+
+	def broadcast_transaction(self, transaction):
+		for r in self.ring:
+			baseurl = 'http://{}:{}/'.format(r['ip'],r['port'])
+
+			transactionjson = jsonpickle.encode(transaction)
+
+			res = requests.post(baseurl + "ValidateTransaction", json = {'transaction':transactionjson})
+			print(res.text)
 
 
-	#@socketio.on('json')
-	def broadcast_transaction(json):
-	# can only be called from a SocketIO event handler.
-	# Parameters:
-	# send a JSON blob, json = True
-		send(json, json=True, broadcast = True)
 
-
-
-	# def validate_transaction(signature, message, public_key):
 	def validate_transaction(self, transaction):
-		return True
-		#TODO
-	    # #use of signature and NBCs balance
-		# h = SHA.new(message)
-		# verifier = PKCS1_v1_5.new(public_key)
-		# if verifier.verify(h, signature):
-		# 	print("The signature is authentic.")
-		# 	return True
-		# else:
-		# 	print("The signature is not authentic.")
-		# 	return False
+	    #use of signature and NBCs balance
+		h = transaction.transaction_id
+		verifier = PKCS1_v1_5.new(transaction.sender_address)
+		if verifier.verify(h, transaction.signature):
+			print("The signature is authentic.")
+			return True
+		else:
+			print("The signature is not authentic.")
+			return False
 
 
 	def add_transaction_to_block(self, transaction, block, capacity):
-		if(self.validate_transaction(transaction)):
+		if(self.chain): # first transaction
+			if(self.validate_transaction(transaction)):
+				block.add_transaction(transaction)
+				#if enough transactions  mine
+				if(len(block.listOfTransactions) == capacity):
+					mined_block = self.mine_block(block)
+					# what hapens after block is mined???
+					#TODO
+		else:
 			block.add_transaction(transaction)
-			#if enough transactions  mine
-			if(len(block.listOfTransactions) == capacity):
-				mined_block = self.mine_block(block)
-				# what hapens after block is mined???
-				#TODO
 
 	def mine_block(self, block):
 		#TODO

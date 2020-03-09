@@ -18,7 +18,12 @@ import jsonpickle
 app = Flask(__name__)
 CORS(app)
 
-#.......................................................................................
+def makeRSAjsonSendable(rsa):
+    return rsa.exportKey("PEM").decode('ascii')
+def makejsonSendableRSA(jsonSendable):
+    return RSA.importKey(jsonSendable.encode('ascii'))
+
+#.............................................................
 def FirstBroadcast(ring):
     for r in ring:
         baseurl = 'http://{}:{}/'.format(r['ip'],r['port'])
@@ -48,6 +53,27 @@ def FirstBroadcast(ring):
 #     response = {'transactions': transactions}
 #     return jsonify(response), 200
 
+@app.route('/ValidateBlock', methods=['POST'])
+def ValidateBlock():
+    # print("request", request.json)
+    if request is None:
+        return "Error: Please supply a valid Block", 400
+    data = request.json
+    if data is None:
+        return "Error: Please supply a valid Block", 400
+
+    block = jsonpickle.decode(data["block"])
+    if(block.index > 0):
+        valid = node.validate_block(block)
+        if(valid):
+            print("Block is Valid")
+            node.add_block_to_chain(block)
+            #TODO run actual transactions
+            return "Block Validated!", 200
+        else:
+            print("Something went wrong, block is invalid")
+            return "Block can not be validated!", 400
+
 @app.route('/nodes/register', methods=['POST'])
 def register_nodes():
     if request is None:
@@ -55,7 +81,7 @@ def register_nodes():
     data = request.json
     if data is None:
         return "Error: Please supply a valid Node", 400
-        
+
     if(BootstrapDict['nodeCount'] >= BootstrapDict['N']):
         return "Error: System is full", 405
     lock = Lock()
@@ -78,7 +104,7 @@ def register_nodes():
     blockchainjson = jsonpickle.encode(blockchain)
 
     print("Added Node with id {}, to the system".format(BootstrapDictInstance['nodeCount']-1))
-    return jsonify({'id':BootstrapDictInstance['nodeCount']-1, 'bootstrap_public_key':BootstrapDictInstance['bootstrap_public_key'], 'blockchain': blockchainjson})
+    return jsonify({'id':BootstrapDictInstance['nodeCount']-1, 'bootstrap_public_key':makeRSAjsonSendable(BootstrapDictInstance['bootstrap_public_key']), 'blockchain': blockchainjson, 'block_capacity': BLOCK_CAPACITY})
 
 # run it once fore every node
 
@@ -96,7 +122,6 @@ if __name__ == '__main__':
     manager = Manager()
 
     BootstrapDict = manager.dict()
-#
     N = 5   #Number of nodes i  the system
     nodeCount = 1
     bootstrap_public_key = ""
@@ -104,6 +129,8 @@ if __name__ == '__main__':
     # create bootstrap node
     node = Node()
     node.id = 0
+    node.block_capacity = BLOCK_CAPACITY
+
     bootstrap_public_key = node.wallet.public_key
 
     BootstrapDict['nodeCount'] = nodeCount
@@ -116,6 +143,7 @@ if __name__ == '__main__':
     first_transaction = node.create_transaction(0, None, bootstrap_public_key, amount)
     node.add_transaction_to_block(first_transaction, genesis_block, BLOCK_CAPACITY)
     blockchain.add_block_to_chain(genesis_block)
+    node.chain = blockchain
     print("Genesis block, added to blockchain")
     # Create Second Block index is 2
     node.previous_block = genesis_block
