@@ -111,6 +111,7 @@ def register_nodes():
 if __name__ == '__main__':
     from argparse import ArgumentParser
     BLOCK_CAPACITY = 100
+    MINING_DIFFICULTY = 4
     blockchain = Blockchain()
 
 
@@ -137,7 +138,7 @@ if __name__ == '__main__':
     BootstrapDict['bootstrap_public_key'] = bootstrap_public_key
     BootstrapDict['N'] = N
     # create genesis block
-    genesis_block = node.create_new_block(0, 1, 0, time.time()) # index = 0, previousHash = 1, nonce = 0
+    genesis_block = node.create_new_block(0, 1, 0, time.time(), MINING_DIFFICULTY) # index = 0, previousHash = 1, nonce = 0
     # first transaction
     amount = 100*N
     first_transaction = node.create_transaction(0, None, bootstrap_public_key, amount)
@@ -147,6 +148,6 @@ if __name__ == '__main__':
     print("Genesis block, added to blockchain")
     # Create Second Block index is 2
     node.previous_block = genesis_block
-    node.current_block = node.create_new_block(1, genesis_block.currentHash, None, time.time())
+    node.current_block = node.create_new_block(1, genesis_block.currentHash, None, time.time(), MINING_DIFFICULTY)
 
     app.run(host='127.0.0.1', port=port, debug=True, use_reloader=False)

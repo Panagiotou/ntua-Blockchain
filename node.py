@@ -1,17 +1,14 @@
 from block import Block
 from wallet import Wallet
 from transaction import Transaction
-# to broadcast_transaction
-from flask import Flask, render_template
-from flask_socketio import send,  SocketIO
 import time
-
 import Crypto
 import Crypto.Random
 from Crypto.Hash import SHA
 from Crypto.PublicKey import RSA
 from Crypto.Signature import PKCS1_v1_5
-#
+from random import randint
+
 class Node:
 	def __init__(self):
 
@@ -27,8 +24,8 @@ class Node:
 		self.block_capacity = None
 
 
-	def create_new_block(self, index, previousHash, nonce, timestamp):
-		return Block(index, previousHash, nonce, timestamp)
+	def create_new_block(self, index, previousHash, nonce, timestamp, difficulty):
+		return Block(index, previousHash, nonce, timestamp, difficulty)
 
 	def create_wallet(self):
 		#create a wallet for this node, with a public key and a private key
@@ -72,15 +69,21 @@ class Node:
 				#if enough transactions  mine
 				if(len(block.listOfTransactions) == capacity):
 					mined_block = self.mine_block(block)
+					self.broadcast_block(mined_block)
 					# what hapens after block is mined???
+					# create new block here?
 					#TODO
 		else:
 			block.add_transaction(transaction)
 
+
 	def mine_block(self, block):
-		#TODO
 		print("Mining block")
-		self.broadcast_block(block)
+		block.nonce = randint(1000000)
+		while ( not (block.currentHash(block.nonce).hexdigest().startswith('0'* block.difficulty))):
+			block.nonce = randint(100000)
+		print("Block is mined.")
+		return block
 		#TODO run a simulation to see if all transactions can happen e.g i have 100$, give 100$ to a and give 100$ to b
 
 	def broadcast_block(self, block):

@@ -87,6 +87,17 @@ def ValidateTransaction():
     if(valid):
         node.add_transaction_to_block(transaction, node.current_block, node.block_capacity)
 
+
+def read_transaction():
+    f = open("5nodes_small/transaction" + node.id + ".txt", "r")
+    for j in range(10):
+        id, amount = (f.readline()).split()
+        for n in node.ring:
+            if int(n['id']) == int(id):
+                node.create_transaction(node.wallet.address, node.wallet.private_key, n.wallet.address, int(amount))
+                break
+
+
 def ContactBootstrapNode(baseurl, host, port):
     public_key = node.wallet.public_key
     load = {'public_key': makeRSAjsonSendable(public_key), 'ip': host, 'port': port }
@@ -106,6 +117,7 @@ def ContactBootstrapNode(baseurl, host, port):
     node.validate_chain(blockchain)
     node.chain = blockchain
     print("Now I can create transactions!")
+    read_transaction()
 
 if __name__ == '__main__':
     from argparse import ArgumentParser

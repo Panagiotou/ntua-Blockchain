@@ -8,7 +8,7 @@ from Crypto.Signature import PKCS1_v1_5
 
 
 class Block:
-	def __init__(self, index, previousHash, nonce, timestamp):
+	def __init__(self, index, previousHash, nonce, timestamp, difficulty):
 		##set
 		self.index = index
 		self.previousHash = previousHash
@@ -16,6 +16,7 @@ class Block:
 		self.timestamp = timestamp
 		self.currentHash = self.myHash()
 		self.listOfTransactions = []
+		self.difficulty = difficulty
 
 	def myHash(self):
 		self.currentHash = SHA.new((str(self.index)+str(self.previousHash)+str(self.timestamp)+str(self.nonce)).encode())
