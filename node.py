@@ -8,6 +8,8 @@ from Crypto.Hash import SHA
 from Crypto.PublicKey import RSA
 from Crypto.Signature import PKCS1_v1_5
 from random import randint
+import jsonpickle
+import requests
 
 class Node:
 	def __init__(self):
@@ -24,8 +26,8 @@ class Node:
 		self.block_capacity = None
 
 
-	def create_new_block(self, index, previousHash, nonce, timestamp, difficulty):
-		return Block(index, previousHash, nonce, timestamp, difficulty)
+	def create_new_block(self, index, previousHash, nonce, timestamp, difficulty, capacity):
+		return Block(index, previousHash, nonce, timestamp, difficulty, capacity)
 
 	def create_wallet(self):
 		#create a wallet for this node, with a public key and a private key
@@ -34,7 +36,7 @@ class Node:
 	def create_transaction(self, sender, sender_private_key, receiver, amount):
 		transaction = Transaction(sender, sender_private_key, receiver, amount)
 		# transaction.transaction_inputs = ...
-		# self.broadcast_transaction(transaction)
+		self.broadcast_transaction(transaction)
 
 		return transaction
 
@@ -44,7 +46,7 @@ class Node:
 			baseurl = 'http://{}:{}/'.format(r['ip'],r['port'])
 
 			transactionjson = jsonpickle.encode(transaction)
-
+			print("I am node with id {} and I am broadcasting the transaction ({}) to node {} with url {}".format(self.id, transaction.transaction_id_hex,  r['id'], baseurl))
 			res = requests.post(baseurl + "ValidateTransaction", json = {'transaction':transactionjson})
 			print(res.text)
 
@@ -52,21 +54,26 @@ class Node:
 
 	def validate_transaction(self, transaction):
 	    #use of signature and NBCs balance
-		h = transaction.transaction_id
-		verifier = PKCS1_v1_5.new(transaction.sender_address)
-		if verifier.verify(h, transaction.signature):
-			print("The signature is authentic.")
-			return True
-		else:
-			print("The signature is not authentic.")
-			return False
+		print("I am node with id {} and I am Validating transaction ({})".format(self.id, transaction.transaction_id_hex))
+		return True
+		# h = transaction.transaction_id
+		# verifier = PKCS1_v1_5.new(transaction.sender_address)
+		# if verifier.verify(h, transaction.signature):
+		# 	print("The signature is authentic.")
+		# 	return True
+		# else:
+		# 	print("The signature is not authentic.")
+		# 	return False
 
 
-	def add_transaction_to_block(self, transaction, block, capacity):
+	def add_transaction_to_block(self, transaction, block):
+		capacity = block.capacity
 		if(self.chain): # first transaction
 			if(self.validate_transaction(transaction)):
+				print("I am node with id {} and I am adding transaction ({}) to block ({})".format(self.id, transaction.transaction_id_hex, block.timestamp))
 				block.add_transaction(transaction)
 				#if enough transactions  mine
+				print(len(block.listOfTransactions), capacity)
 				if(len(block.listOfTransactions) == capacity):
 					mined_block = self.mine_block(block)
 					self.broadcast_block(mined_block)
@@ -79,9 +86,9 @@ class Node:
 
 	def mine_block(self, block):
 		print("Mining block")
-		block.nonce = randint(1000000)
-		while ( not (block.currentHash(block.nonce).hexdigest().startswith('0'* block.difficulty))):
-			block.nonce = randint(100000)
+		block.nonce = randint(0, 1000000)
+		while ( not (block.myHash(block.nonce).hexdigest().startswith('0'* block.difficulty))):
+			block.nonce = randint(0, 100000)
 		print("Block is mined.")
 		return block
 		#TODO run a simulation to see if all transactions can happen e.g i have 100$, give 100$ to a and give 100$ to b
@@ -91,7 +98,7 @@ class Node:
 			baseurl = 'http://{}:{}/'.format(r['ip'],r['port'])
 
 			blockjson = jsonpickle.encode(block)
-
+			print("I am node with id {} and I am broadcasting block ({}) to {}".format(self.id, block.timestamp, baseurl))
 			res = requests.post(baseurl + "ValidateBlock", json = {'block':blockjson})
 			print(res.text)
 	# def valid_proof(.., difficulty=MINING_DIFFICULTY):
@@ -102,9 +109,10 @@ class Node:
 	#concencus functions
 
 	def validate_block(self, block):
-		print("Validating Block")
+		print("I am node with id {} and I am Validating block ({})".format(self.id, block.timestamp))
+
 		# if(block.gethash has number of zeros...)
-		if block.previousHash == self.chain[-1].currentHash:
+		if block.previousHash == self.chain.chain[-1].currentHash:
 			# if previousHash is same as actual previous hash.
 			return True
 		else:
@@ -120,6 +128,7 @@ class Node:
 				self.validate_block(block)
 		print("Blockchain Validated.")
 
-	def resolve_conflicts(self):
+	def resolve_conflicts(self, block):
 		#TODO resolve correct chain
 		print("Resolving")
+		return True

@@ -30,6 +30,15 @@ def makeRSAjsonSendable(rsa):
 def makejsonSendableRSA(jsonSendable):
     return RSA.importKey(jsonSendable.encode('ascii'))
 
+def read_transaction():
+    f = open("5nodes_small/transactions" + str(node.id) + ".txt", "r")
+    for j in range(10):
+        id, amount = (f.readline()).split()
+        for n in node.ring:
+            if int(n['id']) == int(id[-1]):
+                node.create_transaction(node.wallet.address, node.wallet.private_key, n['public_key'], int(amount))
+                break
+
 # get all transactions in the blockchain
 
 @app.route('/transactions/get', methods=['GET'])
@@ -49,11 +58,11 @@ def UpdateRing():
         return "Error: Please supply a valid Ring", 400
     node.ring = list(data.values())
     print("My ring was updated by bootstrap Node!")
+    # read_transaction()
     return "Ring Updated for node {}".format(node.id), 200
 
 @app.route('/ValidateBlock', methods=['POST'])
 def ValidateBlock():
-    # print("request", request.json)
     if request is None:
         return "Error: Please supply a valid Block", 400
     data = request.json
@@ -65,7 +74,7 @@ def ValidateBlock():
         valid = node.validate_block(block)
         if(valid):
             print("Block is Valid")
-            node.add_block_to_chain(block)
+            node.chain.add_block_to_chain(block)
             #TODO run actual transactions
             return "Block Validated!", 200
         else:
@@ -82,20 +91,15 @@ def ValidateTransaction():
         return "Error: Please supply a valid Transaction", 400
 
     transaction = jsonpickle.decode(data["transaction"])
-
     valid = node.validate_transaction(transaction)
     if(valid):
-        node.add_transaction_to_block(transaction, node.current_block, node.block_capacity)
+        node.add_transaction_to_block(transaction, node.current_block)
+        return "Transaction Validated!", 200
 
+@app.route('/Live', methods=['GET'])
+def Live():
+    return "I am alive!", 200
 
-def read_transaction():
-    f = open("5nodes_small/transaction" + node.id + ".txt", "r")
-    for j in range(10):
-        id, amount = (f.readline()).split()
-        for n in node.ring:
-            if int(n['id']) == int(id):
-                node.create_transaction(node.wallet.address, node.wallet.private_key, n.wallet.address, int(amount))
-                break
 
 
 def ContactBootstrapNode(baseurl, host, port):
@@ -116,8 +120,10 @@ def ContactBootstrapNode(baseurl, host, port):
     blockchain = jsonpickle.decode(rejson["blockchain"])
     node.validate_chain(blockchain)
     node.chain = blockchain
+    if(len(blockchain.chain) == 1):
+        node.previous_block = blockchain.chain[-1]
+        node.current_block = node.create_new_block(1,  blockchain.chain[-1].currentHash, None, time.time(), blockchain.chain[-1].difficulty, blockchain.chain[-1].capacity)
     print("Now I can create transactions!")
-    read_transaction()
 
 if __name__ == '__main__':
     from argparse import ArgumentParser
