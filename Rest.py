@@ -116,7 +116,7 @@ def ContactBootstrapNode(baseurl, host, port):
     bootstrap_public_key = rejson["bootstrap_public_key"]
     block_capacity = rejson["block_capacity"]
     node.id = myid
-
+    node.ring.append(rejson['start_ring'])
     print("I am node with ip {} and my unique id is {}!".format(host, node.id))
 
     blockchain = jsonpickle.decode(rejson["blockchain"])

@@ -28,7 +28,7 @@ def FirstBroadcast(ring):
     for r in ring:
         baseurl = 'http://{}:{}/'.format(r['ip'],r['port'])
         ringWithoutSelf = {}
-        ringWithoutSelf['0'] = {'id': 0, 'ip': '127.0.0.1', 'port': '5000', 'public_key': node.wallet.public_key, 'balance': 0}
+        # ringWithoutSelf['0'] = {'id': 0, 'ip': '127.0.0.1', 'port': '5000', 'public_key': node.wallet.public_key, 'balance': 0}
 
         u = 0
         for k in ring:
@@ -141,7 +141,7 @@ def register_nodes():
     blockchainjson = jsonpickle.encode(blockchain)
     start_new_thread(MakeFirstTransaction,(data['public_key'], data['ip'], data['port'],))
     print("Added Node with id {}, to the system".format(BootstrapDictInstance['nodeCount']-1))
-    return jsonify({'id':BootstrapDictInstance['nodeCount']-1, 'bootstrap_public_key':makeRSAjsonSendable(BootstrapDictInstance['bootstrap_public_key']), 'blockchain': blockchainjson, 'block_capacity': BLOCK_CAPACITY})
+    return jsonify({'id':BootstrapDictInstance['nodeCount']-1, 'bootstrap_public_key':makeRSAjsonSendable(BootstrapDictInstance['bootstrap_public_key']), 'blockchain': blockchainjson, 'block_capacity': BLOCK_CAPACITY, 'start_ring': {'id': 0, 'ip': '127.0.0.1', 'port': '5000', 'public_key': makeRSAjsonSendable(BootstrapDictInstance['bootstrap_public_key']), 'balance': 0} })
 
 # run it once fore every node
 
