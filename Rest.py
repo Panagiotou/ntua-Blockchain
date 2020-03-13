@@ -95,6 +95,8 @@ def ValidateTransaction():
     if(valid):
         node.add_transaction_to_block(transaction, node.current_block)
         return "Transaction Validated!", 200
+    else:
+        return "Error: Not valid!", 400
 
 @app.route('/Live', methods=['GET'])
 def Live():

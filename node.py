@@ -11,6 +11,11 @@ from random import randint
 import jsonpickle
 import requests
 
+def makeRSAjsonSendable(rsa):
+    return rsa.exportKey("PEM").decode('ascii')
+def makejsonSendableRSA(jsonSendable):
+    return RSA.importKey(jsonSendable.encode('ascii'))
+
 class Node:
 	def __init__(self):
 
@@ -55,15 +60,17 @@ class Node:
 	def validate_transaction(self, transaction):
 	    #use of signature and NBCs balance
 		print("I am node with id {} and I am Validating transaction ({})".format(self.id, transaction.transaction_id_hex))
-		return True
-		# h = transaction.transaction_id
-		# verifier = PKCS1_v1_5.new(transaction.sender_address)
-		# if verifier.verify(h, transaction.signature):
-		# 	print("The signature is authentic.")
-		# 	return True
-		# else:
-		# 	print("The signature is not authentic.")
-		# 	return False
+#		return True
+		h = SHA.new((str(transaction.sender_address)+str(transaction.receiver_address)+str(transaction.amount) + str(transaction.rand)).encode())
+		print (h.hexdigest())
+		key = transaction.sender_address
+		verifier = PKCS1_v1_5.new(key)
+		if verifier.verify(h, transaction.signature):
+			print("The signature is authentic.")
+			return True
+		else:
+			print("The signature is not authentic.")
+			return False
 
 
 	def add_transaction_to_block(self, transaction, block):

@@ -28,6 +28,8 @@ def FirstBroadcast(ring):
     for r in ring:
         baseurl = 'http://{}:{}/'.format(r['ip'],r['port'])
         ringWithoutSelf = {}
+        ringWithoutSelf['0'] = {'id': 0, 'ip': '127.0.0.1', 'port': '5000', 'public_key': node.wallet.public_key, 'balance': 0}
+
         u = 0
         for k in ring:
             if(not k['ip'] == r['ip']):

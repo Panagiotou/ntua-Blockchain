@@ -25,12 +25,15 @@ class Transaction:
         self.sender_address = sender_address
         self.receiver_address = recipient_address
         self.amount = value
-        self.transaction_id = SHA.new((str(sender_address)+str(recipient_address)+str(value) + str(Crypto.Random.get_random_bytes(10))).encode())# το hash του transaction
+        self.rand = Crypto.Random.get_random_bytes(10)
+        self.transaction_id = SHA.new((str(sender_address)+str(recipient_address)+str(value) + str(self.rand)).encode())# το hash του transaction
+        #self.transaction_id_sendable = makejsonSendableRSA(self.transaction_id)
         self.transaction_inputs = [] # λίστα από Transaction Input
         self.transaction_outputs = [self.transaction_id, self.receiver_address, value] # λίστα από Transaction Output
         self.transaction_id_hex=self.transaction_id.hexdigest()
         if(not type(self.sender_address) == type(0)):
             self.signature = self.sign_transaction(sender_private_key)
+            #self.signature_sendable = makeRSAjsonSendable(self.signature)
 
 
     # def to_dict(self):
@@ -40,5 +43,6 @@ class Transaction:
         """
         Sign transaction with private key
         """
+        print(self.transaction_id_hex)
         signature = PKCS1_v1_5.new(private_key).sign(self.transaction_id)
         return signature
