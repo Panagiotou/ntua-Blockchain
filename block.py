@@ -14,14 +14,14 @@ class Block:
 		self.previousHash = previousHash
 		self.nonce = nonce
 		self.timestamp = timestamp
-		self.currentHash = self.myHash(self.nonce)
+		self.currentHash = SHA.new((str(self.index)+str(self.previousHash)+str(self.nonce)).encode())
 		self.listOfTransactions = []
 		self.difficulty = difficulty
 		self.capacity = capacity
 
 	def myHash(self, nonce):
-		self.currentHash = SHA.new((str(self.index)+str(self.previousHash)+str(self.timestamp)+str(self.nonce)).encode())
-		return SHA.new((str(self.index)+str(self.previousHash)+str(self.timestamp)+str(self.nonce)).encode())
+		# self.currentHash = SHA.new((str(self.index)+str(self.previousHash)+str(self.timestamp)+str(self.nonce)).encode())
+		return SHA.new((str(self.index)+str(self.previousHash)+str(self.nonce)).encode())
 
 	def add_transaction(self, transaction):
 		self.listOfTransactions.append(transaction)

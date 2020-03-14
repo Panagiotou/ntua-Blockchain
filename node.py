@@ -97,11 +97,13 @@ class Node:
             #if enough transactions  mine
             print(len(block.listOfTransactions), capacity)
             if(len(block.listOfTransactions) == capacity):
-            	mined_block = self.mine_block(block)
-            	self.broadcast_block(mined_block)
-            	# what hapens after block is mined???
-            	# create new block here?
-            	#TODO
+                mined_block = self.mine_block(block)
+                if(not type(mined_block) == type(-1)):
+                    for r in self.ring:
+                        start_new_thread(self.broadcast_block, (mined_block, r, ))
+                # what hapens after block is mined???
+                # create new block here?
+                #TODO
     	else:
     		block.add_transaction(transaction)
 
@@ -109,21 +111,34 @@ class Node:
     def mine_block(self, block):
         print("Node {} is mining block {}".format(self.id, block.index))
         block.nonce = 0
+        winner = 1
         while ( not (block.myHash(block.nonce).hexdigest().startswith('0'* block.difficulty))):
             block.nonce += 1
+            if(self.chain.chain[-1].index == block.index):
+                winner = 0
+                break
             # print(block.myHash(block.nonce).hexdigest())
-        print("Node {} mining block {}.... DONE".format(self.id, block.index))
-        return block
+        if(winner):
+            block.currentHash = SHA.new((str(block.index)+str(block.previousHash)+str(block.nonce)).encode())
+            print((str(block.index)+str(block.previousHash)+str(block.nonce)))
+            print((str(block.index)+str(block.previousHash)+str(block.nonce)).encode())
+            print(block.currentHash)
+            print(block.currentHash.hexdigest())
+            print("I won (Node {}), broadcasting victory...".format(self.id))
+            print("i found nonce {} for block {}".format(block.nonce, block.index))
+            return block
+        else:
+            return -1
         #TODO run a simulation to see if all transactions can happen e.g i have 100$, give 100$ to a and give 100$ to b
 
-    def broadcast_block(self, block):
-    	for r in self.ring:
-    		baseurl = 'http://{}:{}/'.format(r['ip'],r['port'])
+    # def valid_proof(.., difficulty=MINING_DIFFICULTY):
+    def broadcast_block(self, block, r):
+        baseurl = 'http://{}:{}/'.format(r['ip'],r['port'])
 
-    		blockjson = jsonpickle.encode(block)
-    		print("I am node with id {} and I am broadcasting block ({}) to {}".format(self.id, block.timestamp, baseurl))
-    		res = requests.post(baseurl + "ValidateBlock", json = {'block':blockjson})
-    		print(res.text)
+        blockjson = jsonpickle.encode(block)
+        print("I am node with id {} and I am broadcasting block ({}) to {}".format(self.id, block.timestamp, baseurl))
+        res = requests.post(baseurl + "ValidateBlock", json = {'block':blockjson})
+        print(res.text)
     # def valid_proof(.., difficulty=MINING_DIFFICULTY):
 
 
@@ -132,14 +147,22 @@ class Node:
     #concencus functions
 
     def validate_block(self, block):
-    	print("I am node with id {} and I am Validating block ({})".format(self.id, block.timestamp))
-
-    	# if(block.gethash has number of zeros...)
-    	if block.previousHash == self.chain.chain[-1].currentHash:
-    		# if previousHash is same as actual previous hash.
-    		return True
-    	else:
-    		return self.resolve_conflicts(block)
+        print("I am node with id {} and I am Validating block ({})".format(self.id, block.timestamp))
+        print("The nonce is {} for block {}".format(block.nonce, block.index))
+        print((str(block.index)+str(block.previousHash)+str(block.nonce)))
+        print((str(block.index)+str(block.previousHash)+str(block.nonce)).encode())
+        curr_hash = SHA.new((str(block.index)+str(block.previousHash)+str(block.nonce)).encode())
+        print(curr_hash)
+        
+        print(curr_hash.hexdigest())
+        if (curr_hash.hexdigest().startswith('0'* block.difficulty)):
+            if block.previousHash == self.chain.chain[-1].currentHash:
+                # if previousHash is same as actual previous hash.
+                return True
+            else:
+                return self.resolve_conflicts(block)
+        else:
+            return False
 
 
 

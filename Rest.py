@@ -110,7 +110,6 @@ def Live():
     return "I am alive!", 200
 
 
-
 def ContactBootstrapNode(baseurl, host, port):
     public_key = node.wallet.public_key
     load = {'public_key': makeRSAjsonSendable(public_key), 'ip': host, 'port': port }
