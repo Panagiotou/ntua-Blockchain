@@ -116,14 +116,11 @@ class Node:
             block.nonce += 1
             if(self.chain.chain[-1].index == block.index):
                 winner = 0
+                print("I lost :(")
                 break
             # print(block.myHash(block.nonce).hexdigest())
         if(winner):
-            block.currentHash = SHA.new((str(block.index)+str(block.previousHash)+str(block.nonce)).encode())
-            print((str(block.index)+str(block.previousHash)+str(block.nonce)))
-            print((str(block.index)+str(block.previousHash)+str(block.nonce)).encode())
-            print(block.currentHash)
-            print(block.currentHash.hexdigest())
+            block.currentHash = SHA.new((str(block.index)+str(block.previousHash_hex)+str(block.nonce)).encode())
             print("I won (Node {}), broadcasting victory...".format(self.id))
             print("i found nonce {} for block {}".format(block.nonce, block.index))
             return block
@@ -149,14 +146,9 @@ class Node:
     def validate_block(self, block):
         print("I am node with id {} and I am Validating block ({})".format(self.id, block.timestamp))
         print("The nonce is {} for block {}".format(block.nonce, block.index))
-        print((str(block.index)+str(block.previousHash)+str(block.nonce)))
-        print((str(block.index)+str(block.previousHash)+str(block.nonce)).encode())
-        curr_hash = SHA.new((str(block.index)+str(block.previousHash)+str(block.nonce)).encode())
-        print(curr_hash)
-        
-        print(curr_hash.hexdigest())
+        curr_hash = SHA.new((str(block.index)+str(block.previousHash_hex)+str(block.nonce)).encode())
         if (curr_hash.hexdigest().startswith('0'* block.difficulty)):
-            if block.previousHash == self.chain.chain[-1].currentHash:
+            if block.previousHash_hex == self.chain.chain[-1].currentHash_hex:
                 # if previousHash is same as actual previous hash.
                 return True
             else:
