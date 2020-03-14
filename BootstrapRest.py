@@ -13,6 +13,13 @@ import time
 from _thread import *
 import threading
 import jsonpickle
+import Crypto
+import Crypto.Random
+from Crypto.Hash import SHA
+from Crypto.PublicKey import RSA
+from Crypto.Signature import PKCS1_v1_5
+
+
 ### JUST A BASIC EXAMPLE OF A REST API WITH FLASK
 
 app = Flask(__name__)
@@ -60,8 +67,9 @@ def MakeFirstTransaction(pk, ip , port):
             time.sleep(0.1)
         else:
             break
-
-
+    print("First transaction")
+    print("BootK", bootstrap_public_key)
+    print("pubk", pk)
     transaction = node.create_transaction(bootstrap_public_key,  node.wallet.private_key, pk, amount)
     print("Made first transaction to", baseurl)
     return
@@ -89,7 +97,7 @@ def ValidateBlock():
         valid = node.validate_block(block)
         if(valid):
             print("Block is Valid")
-            node.add_block_to_chain(block)
+            node.chain.add_block_to_chain(block)
             #TODO run actual transactions
             return "Block Validated!", 200
         else:
@@ -141,7 +149,7 @@ def register_nodes():
     blockchainjson = jsonpickle.encode(blockchain)
     start_new_thread(MakeFirstTransaction,(data['public_key'], data['ip'], data['port'],))
     print("Added Node with id {}, to the system".format(BootstrapDictInstance['nodeCount']-1))
-    return jsonify({'id':BootstrapDictInstance['nodeCount']-1, 'bootstrap_public_key':makeRSAjsonSendable(BootstrapDictInstance['bootstrap_public_key']), 'blockchain': blockchainjson, 'block_capacity': BLOCK_CAPACITY, 'start_ring': {'id': 0, 'ip': '127.0.0.1', 'port': '5000', 'public_key': makeRSAjsonSendable(BootstrapDictInstance['bootstrap_public_key']), 'balance': 0} })
+    return {'id':BootstrapDictInstance['nodeCount']-1, 'bootstrap_public_key':makeRSAjsonSendable(BootstrapDictInstance['bootstrap_public_key']), 'blockchain': blockchainjson, 'block_capacity': BLOCK_CAPACITY, 'start_ring': {'id': 0, 'ip': '127.0.0.1', 'port': '5000', 'public_key':makeRSAjsonSendable(BootstrapDictInstance['bootstrap_public_key']), 'balance': 0}}
 
 # run it once fore every node
 

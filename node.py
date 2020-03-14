@@ -42,7 +42,6 @@ class Node:
     	transaction = Transaction(sender, sender_private_key, receiver, amount)
     	# transaction.transaction_inputs = ...
     	self.broadcast_transaction(transaction)
-
     	return transaction
 
 
@@ -58,23 +57,23 @@ class Node:
 
 
     def validate_transaction(self, transaction):
-        sender_adress=transaction.sender_address
+        print("Validation I am node {} right now".format(self.id))
+        for r in self.ring:
+            if(r['public_key'] == transaction.sender_address):
+                print("This transaction was sent to me by Node", r['id'])
+
+        print(transaction.sender_address)
+        print(transaction.receiver_address)
+        print(transaction.transaction_id)
+
+
+        sender_address=transaction.sender_address
         ##use temp until h is passed humanly
         h= SHA.new(transaction.transaction_myid.encode())
         signature=transaction.signature
-        which = 1
-        print("SA:", makeRSAjsonSendable(sender_adress))
-        for r in self.ring:
-            print(r['public_key'])
-            print(makeRSAjsonSendable(sender_adress) ==  r['public_key'])
-            if(makeRSAjsonSendable(sender_adress) ==  r['public_key']):
-                which = 0
-                print("MATCH")
-                sender_adress = r['public_key']
-        if(which):
-            return False
-        pubkey=RSA.importKey(sender_adress.encode('ascii'))
+        pubkey=sender_address
         verified = PKCS1_v1_5.new(pubkey).verify(h, signature)
+        print("Verification", verified)
         if(verified):
             return True
         else:
@@ -84,29 +83,30 @@ class Node:
     def add_transaction_to_block(self, transaction, block):
     	capacity = block.capacity
     	if(self.chain): # first transaction
-    		if(self.validate_transaction(transaction)):
-    			print("I am node with id {} and I am adding transaction ({}) to block ({})".format(self.id, transaction.transaction_id_hex, block.timestamp))
-    			block.add_transaction(transaction)
-    			#if enough transactions  mine
-    			print(len(block.listOfTransactions), capacity)
-    			if(len(block.listOfTransactions) == capacity):
-    				mined_block = self.mine_block(block)
-    				self.broadcast_block(mined_block)
-    				# what hapens after block is mined???
-    				# create new block here?
-    				#TODO
+            print("I am node with id {} and I am adding transaction ({}) to block ({})".format(self.id, transaction.transaction_id_hex, block.timestamp))
+            block.add_transaction(transaction)
+            #if enough transactions  mine
+            print(len(block.listOfTransactions), capacity)
+            if(len(block.listOfTransactions) == capacity):
+            	mined_block = self.mine_block(block)
+            	self.broadcast_block(mined_block)
+            	# what hapens after block is mined???
+            	# create new block here?
+            	#TODO
     	else:
     		block.add_transaction(transaction)
 
 
     def mine_block(self, block):
-    	print("Mining block")
-    	block.nonce = randint(0, 1000000)
-    	while ( not (block.myHash(block.nonce).hexdigest().startswith('0'* block.difficulty))):
-    		block.nonce = randint(0, 100000)
-    	print("Block is mined.")
-    	return block
-    	#TODO run a simulation to see if all transactions can happen e.g i have 100$, give 100$ to a and give 100$ to b
+        print("Mining block")
+        block.nonce = 0
+        while ( not (block.myHash(block.nonce).hexdigest().startswith('0'* block.difficulty))):
+            block.nonce += 1
+            # print(block.myHash(block.nonce).hexdigest())
+
+        print("Block is mined.")
+        return block
+        #TODO run a simulation to see if all transactions can happen e.g i have 100$, give 100$ to a and give 100$ to b
 
     def broadcast_block(self, block):
     	for r in self.ring:

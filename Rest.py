@@ -56,7 +56,12 @@ def UpdateRing():
     data = request.json
     if data is None:
         return "Error: Please supply a valid Ring", 400
-    node.ring = list(data.values())
+    ring = list(data.values())
+    r1 = None
+    for r in ring:
+        r1 = r
+        r1['public_key'] = makejsonSendableRSA(r1['public_key'])
+        node.ring.append(r1)
     print("My ring was updated by bootstrap Node!")
     # read_transaction()
     return "Ring Updated for node {}".format(node.id), 200
@@ -73,10 +78,9 @@ def ValidateBlock():
     if(block.index > 0):
         valid = node.validate_block(block)
         if(valid):
-            print("Block is Valid")
             node.chain.add_block_to_chain(block)
             #TODO run actual transactions
-            return "Block Validated!", 200
+            return "Block Validated by Node {} !".format(node.id), 200
         else:
             print("Something went wrong, block is invalid")
             return "Block can not be validated!", 400
@@ -94,7 +98,7 @@ def ValidateTransaction():
     valid = node.validate_transaction(transaction)
     if(valid):
         node.add_transaction_to_block(transaction, node.current_block)
-        return "Transaction Validated!", 200
+        return "Transaction Validated by Node {} !".format(node.id), 200
     else:
         return "Error: Not valid!", 400
 
@@ -113,9 +117,10 @@ def ContactBootstrapNode(baseurl, host, port):
         exit(1)
     rejson = r.json()
     myid = rejson["id"]
-    bootstrap_public_key = rejson["bootstrap_public_key"]
+    bootstrap_public_key = makejsonSendableRSA(rejson["bootstrap_public_key"])
     block_capacity = rejson["block_capacity"]
     node.id = myid
+    rejson['start_ring']['public_key'] = makejsonSendableRSA(rejson['start_ring']['public_key'])
     node.ring.append(rejson['start_ring'])
     print("I am node with ip {} and my unique id is {}!".format(host, node.id))
 

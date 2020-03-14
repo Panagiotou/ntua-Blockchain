@@ -44,7 +44,6 @@ class Transaction:
         """
         Sign transaction with private key
         """
-        print(self.transaction_id_hex)
         signature = PKCS1_v1_5.new(private_key).sign(self.transaction_id)
         return signature
 
