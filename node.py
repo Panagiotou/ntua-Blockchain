@@ -10,6 +10,8 @@ from Crypto.Signature import PKCS1_v1_5
 from random import randint
 import jsonpickle
 import requests
+from _thread import *
+import threading
 
 def makeRSAjsonSendable(rsa):
     return rsa.exportKey("PEM").decode('ascii')
@@ -19,17 +21,18 @@ def makejsonSendableRSA(jsonSendable):
 class Node:
     def __init__(self):
 
-    	self.chain = None
-    	self.current_id_count = None # +1 every time a node is added
-    	self.id = None # 0...n-1
-    	self.NBCs = None
-    	self.wallet = None # created with create_wallet()
-    	self.ring = []   #here we store information for every node, as its id, its address (ip:port) its public key and its balance
-    	self.create_wallet()
-    	self.previous_block = None
-    	self.current_block = None
-    	self.block_capacity = None
-
+        self.chain = None
+        self.current_id_count = None # +1 every time a node is added
+        self.id = None # 0...n-1
+        self.NBCs = None
+        self.wallet = None # created with create_wallet()
+        self.ring = []   #here we store information for every node, as its id, its address (ip:port) its public key and its balance
+        self.create_wallet()
+        self.previous_block = None
+        self.current_block = None
+        self.block_capacity = None
+        self.myip = None
+        self.myport = None
 
     def create_new_block(self, index, previousHash, nonce, timestamp, difficulty, capacity):
     	return Block(index, previousHash, nonce, timestamp, difficulty, capacity)
@@ -39,33 +42,40 @@ class Node:
     	self.wallet = Wallet()
 
     def create_transaction(self, sender, sender_private_key, receiver, amount):
-    	transaction = Transaction(sender, sender_private_key, receiver, amount)
-    	# transaction.transaction_inputs = ...
-    	self.broadcast_transaction(transaction)
-    	return transaction
-
-
-    def broadcast_transaction(self, transaction):
-        for r in self.ring:
-            baseurl = 'http://{}:{}/'.format(r['ip'],r['port'])
-
+        transaction = Transaction(sender, sender_private_key, receiver, amount)
+        # transaction.transaction_inputs = ...
+        if(transaction.signature):
             transactionjson = jsonpickle.encode(transaction)
-            print("I am node with id {} and I am broadcasting the transaction ({}) to node {} with url {}".format(self.id, transaction.transaction_id_hex,  r['id'], baseurl))
+            baseurl = 'http://{}:{}/'.format(self.myip, self.myport)
             res = requests.post(baseurl + "ValidateTransaction", json = {'transaction':transactionjson})
-            print(res.text)
 
+        for r in self.ring:
+            start_new_thread(self.broadcast_transaction, (transaction, r, ))
+            # self.broadcast_transaction(transaction, baseurl)
+        return transaction
+
+
+    def broadcast_transaction(self, transaction, r):
+        baseurl = 'http://{}:{}/'.format(r['ip'],r['port'])
+        transactionjson = jsonpickle.encode(transaction)
+        print("I am node with id {} and I am broadcasting the transaction ({}) to node {} with url {}".format(self.id, transaction.transaction_id_hex,  r['id'], baseurl))
+
+        res = requests.post(baseurl + "ValidateTransaction", json = {'transaction':transactionjson})
+
+        print(res.text)
 
 
     def validate_transaction(self, transaction):
         print("Validation I am node {} right now".format(self.id))
-        for r in self.ring:
-            if(r['public_key'] == transaction.sender_address):
-                print("This transaction was sent to me by Node", r['id'])
-
-        print(transaction.sender_address)
-        print(transaction.receiver_address)
-        print(transaction.transaction_id)
-
+        # k = 1
+        # for r in self.ring:
+        #     temp_key = RSA.generate(2048, e=65537)
+        #     temp_public_key = temp_key.publickey()
+        #     if(r['public_key'] == transaction.sender_address):
+        #         print("This transaction was sent to me by Node", r['id'])
+        #         k = 0
+        # if(k):
+        #     print("This transaction was sent to me by myself Node", self.id)
 
         sender_address=transaction.sender_address
         ##use temp until h is passed humanly
@@ -73,7 +83,6 @@ class Node:
         signature=transaction.signature
         pubkey=sender_address
         verified = PKCS1_v1_5.new(pubkey).verify(h, signature)
-        print("Verification", verified)
         if(verified):
             return True
         else:
@@ -98,13 +107,12 @@ class Node:
 
 
     def mine_block(self, block):
-        print("Mining block")
+        print("Node {} is mining block {}".format(self.id, block.index))
         block.nonce = 0
         while ( not (block.myHash(block.nonce).hexdigest().startswith('0'* block.difficulty))):
             block.nonce += 1
             # print(block.myHash(block.nonce).hexdigest())
-
-        print("Block is mined.")
+        print("Node {} mining block {}.... DONE".format(self.id, block.index))
         return block
         #TODO run a simulation to see if all transactions can happen e.g i have 100$, give 100$ to a and give 100$ to b
 
@@ -145,5 +153,5 @@ class Node:
 
     def resolve_conflicts(self, block):
     	#TODO resolve correct chain
-    	print("Resolving")
+    	print("Resolving Conflicts")
     	return True

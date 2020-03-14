@@ -32,6 +32,7 @@ class Transaction:
         self.transaction_inputs = [] # λίστα από Transaction Input
         self.transaction_outputs = [self.transaction_id, self.receiver_address, value] # λίστα από Transaction Output
         self.transaction_id_hex=self.transaction_id.hexdigest()
+        self.signature = None
         if(not type(self.sender_address) == type(0)):
             self.signature = self.sign_transaction(sender_private_key)
 

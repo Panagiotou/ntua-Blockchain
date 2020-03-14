@@ -87,6 +87,9 @@ def ValidateBlock():
 
 @app.route('/ValidateTransaction', methods=['POST'])
 def ValidateTransaction():
+    if(node.id == 1):
+        print("Node 1 sleeping")
+        time.sleep(5)
     # print("request", request.json)
     if request is None:
         return "Error: Please supply a valid Transaction", 400
@@ -120,6 +123,8 @@ def ContactBootstrapNode(baseurl, host, port):
     bootstrap_public_key = makejsonSendableRSA(rejson["bootstrap_public_key"])
     block_capacity = rejson["block_capacity"]
     node.id = myid
+    node.myip = host
+    node.myport = port
     rejson['start_ring']['public_key'] = makejsonSendableRSA(rejson['start_ring']['public_key'])
     node.ring.append(rejson['start_ring'])
     print("I am node with ip {} and my unique id is {}!".format(host, node.id))
@@ -129,7 +134,8 @@ def ContactBootstrapNode(baseurl, host, port):
     node.chain = blockchain
     if(len(blockchain.chain) == 1):
         node.previous_block = blockchain.chain[-1]
-        node.current_block = node.create_new_block(1,  blockchain.chain[-1].currentHash, None, time.time(), blockchain.chain[-1].difficulty, blockchain.chain[-1].capacity)
+        node.current_block = jsonpickle.decode(rejson["current_block"])
+
     print("Now I can create transactions!")
 
 if __name__ == '__main__':

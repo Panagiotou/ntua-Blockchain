@@ -67,11 +67,7 @@ def MakeFirstTransaction(pk, ip , port):
             time.sleep(0.1)
         else:
             break
-    print("First transaction")
-    print("BootK", bootstrap_public_key)
-    print("pubk", pk)
     transaction = node.create_transaction(bootstrap_public_key,  node.wallet.private_key, pk, amount)
-    print("Made first transaction to", baseurl)
     return
 
 # get all transactions in the blockchain
@@ -85,7 +81,6 @@ def MakeFirstTransaction(pk, ip , port):
 
 @app.route('/ValidateBlock', methods=['POST'])
 def ValidateBlock():
-    # print("request", request.json)
     if request is None:
         return "Error: Please supply a valid Block", 400
     data = request.json
@@ -96,10 +91,9 @@ def ValidateBlock():
     if(block.index > 0):
         valid = node.validate_block(block)
         if(valid):
-            print("Block is Valid")
             node.chain.add_block_to_chain(block)
             #TODO run actual transactions
-            return "Block Validated!", 200
+            return "Block Validated by Node {} !".format(node.id), 200
         else:
             print("Something went wrong, block is invalid")
             return "Block can not be validated!", 400
@@ -114,7 +108,6 @@ def ValidateTransaction():
         return "Error: Please supply a valid Transaction", 400
 
     transaction = jsonpickle.decode(data["transaction"])
-
     valid = node.validate_transaction(transaction)
     if(valid):
         node.add_transaction_to_block(transaction, node.current_block)
@@ -149,7 +142,10 @@ def register_nodes():
     blockchainjson = jsonpickle.encode(blockchain)
     start_new_thread(MakeFirstTransaction,(data['public_key'], data['ip'], data['port'],))
     print("Added Node with id {}, to the system".format(BootstrapDictInstance['nodeCount']-1))
-    return {'id':BootstrapDictInstance['nodeCount']-1, 'bootstrap_public_key':makeRSAjsonSendable(BootstrapDictInstance['bootstrap_public_key']), 'blockchain': blockchainjson, 'block_capacity': BLOCK_CAPACITY, 'start_ring': {'id': 0, 'ip': '127.0.0.1', 'port': '5000', 'public_key':makeRSAjsonSendable(BootstrapDictInstance['bootstrap_public_key']), 'balance': 0}}
+    return {'id':BootstrapDictInstance['nodeCount']-1, 'bootstrap_public_key':makeRSAjsonSendable(BootstrapDictInstance['bootstrap_public_key']),\
+     'blockchain': blockchainjson, 'block_capacity': BLOCK_CAPACITY,\
+      'start_ring': {'id': 0, 'ip': '127.0.0.1', 'port': '5000', 'public_key':makeRSAjsonSendable(BootstrapDictInstance['bootstrap_public_key']), 'balance': 0}\
+      , 'current_block': jsonpickle.encode(node.current_block)}
 
 # run it once fore every node
 
@@ -175,6 +171,8 @@ if __name__ == '__main__':
     # create bootstrap node
     node = Node()
     node.id = 0
+    node.myip = '127.0.0.1'
+    node.myport = port
 
     bootstrap_public_key = node.wallet.public_key
 
