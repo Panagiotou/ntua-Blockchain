@@ -34,8 +34,8 @@ class Node:
         self.myip = None
         self.myport = None
 
-    def create_new_block(self, index, previousHash, nonce, timestamp, difficulty, capacity):
-    	return Block(index, previousHash, nonce, timestamp, difficulty, capacity)
+    def create_new_block(self, index, previousHash_hex, nonce, timestamp, difficulty, capacity):
+    	return Block(index, previousHash_hex, nonce, timestamp, difficulty, capacity)
 
     def create_wallet(self):
     	#create a wallet for this node, with a public key and a private key
@@ -89,23 +89,35 @@ class Node:
             return False
 
 
-    def add_transaction_to_block(self, transaction, block):
-    	capacity = block.capacity
+    def add_transaction_to_block(self, transaction):
+    	capacity = self.current_block.capacity
     	if(self.chain): # first transaction
-            print("I am node with id {} and I am adding transaction ({}) to block ({})".format(self.id, transaction.transaction_id_hex, block.timestamp))
-            block.add_transaction(transaction)
+            print("I am node with id {} and I am adding transaction ({}) to block ({})".format(self.id, transaction.transaction_id_hex, self.current_block.timestamp))
+            self.current_block.add_transaction(transaction)
             #if enough transactions  mine
-            print(len(block.listOfTransactions), capacity)
-            if(len(block.listOfTransactions) == capacity):
-                mined_block = self.mine_block(block)
+            print(len(self.current_block.listOfTransactions), capacity)
+            if(len(self.current_block.listOfTransactions) == capacity):
+                mined_block = self.mine_block(self.current_block)
+                print ("Mined block: ", mined_block)
                 if(not type(mined_block) == type(-1)):
                     for r in self.ring:
                         start_new_thread(self.broadcast_block, (mined_block, r, ))
-                # what hapens after block is mined???
-                # create new block here?
-                #TODO
+                if (not self.previous_block):
+                    self.previous_block = self.current_block
+                    self.current_block = self.create_new_block(self.current_block.index + 1, self.current_block.currentHash_hex, None, time.time(), self.current_block.difficulty, self.current_block.capacity)
+                    print("Creating new block!")
+                else:
+                    print("Cannot create new block...")
+                    while (True):
+                        print ("Previous block", self.previous_block)
+                        time.sleep(10)
+                        if (not self.previous_block):
+                            self.previous_block = self.current_block
+                            self.current_block = self.create_new_block(self.current_block.index + 1, self.current_block.currentHash_hex, None, time.time(), self.current_block.difficulty, self.current_block.capacity)
+                            print("Creating new block!")
+                            break
     	else:
-    		block.add_transaction(transaction)
+    		self.current_block.add_transaction(transaction)
 
 
     def mine_block(self, block):
@@ -149,7 +161,8 @@ class Node:
         curr_hash = SHA.new((str(block.index)+str(block.previousHash_hex)+str(block.nonce)).encode())
         if (curr_hash.hexdigest().startswith('0'* block.difficulty)):
             if block.previousHash_hex == self.chain.chain[-1].currentHash_hex:
-                # if previousHash is same as actual previous hash.
+                # if previousHash is same as actual previous hash.self.
+                self.previous_block = None
                 return True
             else:
                 return self.resolve_conflicts(block)

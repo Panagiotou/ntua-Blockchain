@@ -63,7 +63,7 @@ def UpdateRing():
         r1['public_key'] = makejsonSendableRSA(r1['public_key'])
         node.ring.append(r1)
     print("My ring was updated by bootstrap Node!")
-    # read_transaction()
+    read_transaction()
     return "Ring Updated for node {}".format(node.id), 200
 
 @app.route('/ValidateBlock', methods=['POST'])
@@ -100,7 +100,7 @@ def ValidateTransaction():
     transaction = jsonpickle.decode(data["transaction"])
     valid = node.validate_transaction(transaction)
     if(valid):
-        node.add_transaction_to_block(transaction, node.current_block)
+        node.add_transaction_to_block(transaction)
         return "Transaction Validated by Node {} !".format(node.id), 200
     else:
         return "Error: Not valid!", 400
@@ -131,9 +131,9 @@ def ContactBootstrapNode(baseurl, host, port):
     blockchain = jsonpickle.decode(rejson["blockchain"])
     node.validate_chain(blockchain)
     node.chain = blockchain
-    if(len(blockchain.chain) == 1):
-        node.previous_block = blockchain.chain[-1]
-        node.current_block = jsonpickle.decode(rejson["current_block"])
+    #if(len(blockchain.chain) == 1):
+    node.previous_block = None
+    node.current_block = jsonpickle.decode(rejson["current_block"])
 
     print("Now I can create transactions!")
 

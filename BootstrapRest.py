@@ -110,7 +110,7 @@ def ValidateTransaction():
     transaction = jsonpickle.decode(data["transaction"])
     valid = node.validate_transaction(transaction)
     if(valid):
-        node.add_transaction_to_block(transaction, node.current_block)
+        node.add_transaction_to_block(transaction)
         return "Transaction Validated!", 200
 
 @app.route('/nodes/register', methods=['POST'])
@@ -142,16 +142,16 @@ def register_nodes():
     blockchainjson = jsonpickle.encode(blockchain)
     start_new_thread(MakeFirstTransaction,(data['public_key'], data['ip'], data['port'],))
     print("Added Node with id {}, to the system".format(BootstrapDictInstance['nodeCount']-1))
-    return {'id':BootstrapDictInstance['nodeCount']-1, 'bootstrap_public_key':makeRSAjsonSendable(BootstrapDictInstance['bootstrap_public_key']),\
+    return  jsonify({'id':BootstrapDictInstance['nodeCount']-1, 'bootstrap_public_key':makeRSAjsonSendable(BootstrapDictInstance['bootstrap_public_key']),\
      'blockchain': blockchainjson, 'block_capacity': BLOCK_CAPACITY,\
       'start_ring': {'id': 0, 'ip': '127.0.0.1', 'port': '5000', 'public_key':makeRSAjsonSendable(BootstrapDictInstance['bootstrap_public_key']), 'balance': 0}\
-      , 'current_block': jsonpickle.encode(node.current_block)}
+      , 'current_block': jsonpickle.encode(node.current_block)})
 
 # run it once fore every node
 
 if __name__ == '__main__':
     from argparse import ArgumentParser
-    BLOCK_CAPACITY = 2
+    BLOCK_CAPACITY = 1
     MINING_DIFFICULTY = 4
     blockchain = Blockchain()
 
@@ -164,7 +164,7 @@ if __name__ == '__main__':
     manager = Manager()
 
     BootstrapDict = manager.dict()
-    N = 3   #Number of nodes i  the system
+    N = 3  #Number of nodes i  the system
     nodeCount = 1
     bootstrap_public_key = ""
 
@@ -181,15 +181,16 @@ if __name__ == '__main__':
     BootstrapDict['N'] = N
     # create genesis block
     genesis_block = node.create_new_block(0, 1, 0, time.time(), MINING_DIFFICULTY, BLOCK_CAPACITY) # index = 0, previousHash = 1, nonce = 0, capacity = BLOCK_CAPACITY
+    node.current_block = genesis_block
     # first transaction
     amount = 100*N
     first_transaction = node.create_transaction(0, None, bootstrap_public_key, amount)
-    node.add_transaction_to_block(first_transaction, genesis_block)
+    node.add_transaction_to_block(first_transaction)
     blockchain.add_block_to_chain(genesis_block)
     node.chain = blockchain
     print("Genesis block, added to blockchain")
     # Create Second Block index is 2
-    node.previous_block = genesis_block
-    node.current_block = node.create_new_block(1, genesis_block.currentHash, None, time.time(), MINING_DIFFICULTY, BLOCK_CAPACITY)
+    node.previous_block = None
+    node.current_block = node.create_new_block(1, genesis_block.currentHash_hex, None, time.time(), MINING_DIFFICULTY, BLOCK_CAPACITY)
 
     app.run(host='127.0.0.1', port=port, debug=True, use_reloader=False)
