@@ -100,8 +100,11 @@ class Node:
                 mined_block = self.mine_block(self.current_block)
                 print ("Mined block: ", mined_block)
                 if(not type(mined_block) == type(-1)):
+                    self.chain.add_block_to_chain(mined_block)
+                    self.previous_block = None
                     for r in self.ring:
                         start_new_thread(self.broadcast_block, (mined_block, r, ))
+
                 if (not self.previous_block):
                     self.previous_block = self.current_block
                     self.current_block = self.create_new_block(self.current_block.index + 1, self.current_block.currentHash_hex, None, time.time(), self.current_block.difficulty, self.current_block.capacity)
@@ -160,6 +163,10 @@ class Node:
         print("The nonce is {} for block {}".format(block.nonce, block.index))
         curr_hash = SHA.new((str(block.index)+str(block.previousHash_hex)+str(block.nonce)).encode())
         if (curr_hash.hexdigest().startswith('0'* block.difficulty)):
+            print(block.previousHash_hex)
+            print(block.currentHash_hex)
+            print(self.chain.chain[-1].currentHash_hex)
+            print(len(self.chain.chain))
             if block.previousHash_hex == self.chain.chain[-1].currentHash_hex:
                 # if previousHash is same as actual previous hash.self.
                 self.previous_block = None
