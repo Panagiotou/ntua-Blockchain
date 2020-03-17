@@ -5,3 +5,11 @@ class Blockchain:
     def add_block_to_chain(self, block):
         print("Block", block.index, "added to blockchain!")
         self.chain.append(block)
+    def printMe(self):
+        print()
+        print()
+        print("Blockchain:")
+        for b in self.chain:
+            b.printMe()
+        print()
+        print()

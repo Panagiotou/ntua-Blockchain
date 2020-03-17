@@ -20,11 +20,13 @@ def makejsonSendableRSA(jsonSendable):
 
 class Transaction:
 
-    def __init__(self, sender_address, sender_private_key, recipient_address, value):
+    def __init__(self, sender_address, sender_private_key, recipient_address, value, reals=None, realr=None):
         ##set
         self.sender_address = sender_address
         self.receiver_address = recipient_address
         self.amount = value
+        self.reals = reals
+        self.realr = realr
         self.rand = Crypto.Random.get_random_bytes(10)
         self.transaction_id = SHA.new((str(sender_address)+str(recipient_address)+str(value) + str(self.rand)).encode())# το hash του transaction
         self.transaction_myid = str(sender_address)+str(recipient_address)+str(value) + str(self.rand)
@@ -50,3 +52,11 @@ class Transaction:
 
     def verify_transaction(self):
         return True
+    def printMe(self):
+        sender = self.sender_address
+        receiver = self.receiver_address
+        if(not self.reals == None):
+            sender = self.reals
+        if(not self.realr == None):
+            receiver = self.realr
+        print("\t \t I am transaction ({}) giving {} $ from node {} to node {}".format(self.transaction_id_hex, self.amount, sender, receiver))

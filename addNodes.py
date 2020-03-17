@@ -17,7 +17,7 @@ for n in range(1, N):
     load = {'public_key': str(public_key) }
     r = requests.post(baseurl + "nodes/register", json = load)
     if(not r.status_code == 200):
-        print(r.text)
+        # print(r.text)
         exit(1)
     rejson = r.json()
     myid = rejson["id"]

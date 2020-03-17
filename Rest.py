@@ -63,7 +63,7 @@ def UpdateRing():
         r1 = r
         r1['public_key'] = makejsonSendableRSA(r1['public_key'])
         node.ring.append(r1)
-    print("My ring was updated by bootstrap Node!")
+    # print("My ring was updated by bootstrap Node!")
 
     read_transaction()
     return "Ring Updated for node {}".format(node.id), 200
@@ -81,6 +81,7 @@ def ValidateBlock():
         valid = node.validate_block(block)
         if(valid):
             node.chain.add_block_to_chain(block)
+            node.chain.printMe()
             #TODO run actual transactions
             return "Block Validated by Node {} !".format(node.id), 200
         else:
@@ -128,7 +129,7 @@ def ContactBootstrapNode(baseurl, host, port):
     node.myport = port
     rejson['start_ring']['public_key'] = makejsonSendableRSA(rejson['start_ring']['public_key'])
     node.ring.append(rejson['start_ring'])
-    print("I am node with ip {} and my unique id is {}!".format(host, node.id))
+    # print("I am node with ip {} and my unique id is {}!".format(host, node.id))
 
     blockchain = jsonpickle.decode(rejson["blockchain"])
     node.chain = blockchain
@@ -137,7 +138,7 @@ def ContactBootstrapNode(baseurl, host, port):
     node.previous_block = None
     node.current_block = jsonpickle.decode(rejson["current_block"])
 
-    print("Now I can create transactions!")
+    # print("Now I can create transactions!")
 
 if __name__ == '__main__':
     from argparse import ArgumentParser

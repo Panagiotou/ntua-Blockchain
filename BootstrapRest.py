@@ -54,7 +54,7 @@ def FirstBroadcast(ring):
                 break
 
         resRing = requests.post(baseurl + "UpdateRing", json = load)
-        print(resRing.text)
+        # print(resRing.text)
 
 def MakeFirstTransaction(pk, ip , port):
     amount = 100
@@ -92,10 +92,11 @@ def ValidateBlock():
         valid = node.validate_block(block)
         if(valid):
             node.chain.add_block_to_chain(block)
+            node.chain.printMe()
             #TODO run actual transactions
             return "Block Validated by Node {} !".format(node.id), 200
         else:
-            print("Something went wrong, block is invalid")
+            # print("Something went wrong, block is invalid")
             return "Block can not be validated!", 400
 
 @app.route('/ValidateTransaction', methods=['POST'])
@@ -141,7 +142,7 @@ def register_nodes():
 
     blockchainjson = jsonpickle.encode(blockchain)
     start_new_thread(MakeFirstTransaction,(data['public_key'], data['ip'], data['port'],))
-    print("Added Node with id {}, to the system".format(BootstrapDictInstance['nodeCount']-1))
+    # print("Added Node with id {}, to the system".format(BootstrapDictInstance['nodeCount']-1))
     return  jsonify({'id':BootstrapDictInstance['nodeCount']-1, 'bootstrap_public_key':makeRSAjsonSendable(BootstrapDictInstance['bootstrap_public_key']),\
      'blockchain': blockchainjson, 'block_capacity': BLOCK_CAPACITY,\
       'start_ring': {'id': 0, 'ip': '127.0.0.1', 'port': '5000', 'public_key':makeRSAjsonSendable(BootstrapDictInstance['bootstrap_public_key']), 'balance': 0}\
@@ -151,8 +152,10 @@ def register_nodes():
 
 if __name__ == '__main__':
     from argparse import ArgumentParser
-    BLOCK_CAPACITY = 1
+    BLOCK_CAPACITY = 2
     MINING_DIFFICULTY = 4
+    N = 3  #Number of nodes i  the system
+
     blockchain = Blockchain()
 
 
@@ -164,7 +167,6 @@ if __name__ == '__main__':
     manager = Manager()
 
     BootstrapDict = manager.dict()
-    N = 3  #Number of nodes i  the system
     nodeCount = 1
     bootstrap_public_key = ""
 
@@ -188,7 +190,8 @@ if __name__ == '__main__':
     node.add_transaction_to_block(first_transaction)
     blockchain.add_block_to_chain(genesis_block)
     node.chain = blockchain
-    print("Genesis block, added to blockchain")
+    node.chain.printMe()
+    # print("Genesis block, added to blockchain")
     # Create Second Block index is 2
     node.previous_block = None
     node.current_block = node.create_new_block(1, genesis_block.currentHash_hex, None, time.time(), MINING_DIFFICULTY, BLOCK_CAPACITY)

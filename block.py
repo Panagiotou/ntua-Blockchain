@@ -30,3 +30,9 @@ class Block:
 
 	def add_transaction(self, transaction):
 		self.listOfTransactions.append(transaction)
+
+	def printMe(self):
+		print("\t I am block with index", self.index)
+		print("\t My Transaction list contains:")
+		for t in self.listOfTransactions:
+			t.printMe()

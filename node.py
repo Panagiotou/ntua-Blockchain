@@ -12,7 +12,7 @@ import jsonpickle
 import requests
 from _thread import *
 import threading
-
+DEBUG = True
 def makeRSAjsonSendable(rsa):
     return rsa.exportKey("PEM").decode('ascii')
 def makejsonSendableRSA(jsonSendable):
@@ -42,7 +42,56 @@ class Node:
     	self.wallet = Wallet()
 
     def create_transaction(self, sender, sender_private_key, receiver, amount):
-        transaction = Transaction(sender, sender_private_key, receiver, amount)
+        realsender = None
+        realreceiver = None
+        if(DEBUG):
+            if(type(sender) == type(0)):
+                realsender = "genesis"
+                realreceiver = "0"
+            for r in self.ring:
+                try:
+                    if(r['public_key'] == sender):
+                        realsender = r['id']
+                except:
+                    pass
+                try:
+                    if(r['public_key'] == makeRSAjsonSendable(sender)):
+                        realsender = r['id']
+                except:
+                    pass
+                try:
+                    if(sender == self.wallet.public_key):
+                        realsender = self.id
+                except:
+                    pass
+                try:
+                    if(makeRSAjsonSendable(sender) == makeRSAjsonSendable(self.wallet.public_key)):
+                        realsender = self.id
+                except:
+                    pass
+                try:
+                    if(r['public_key'] == receiver):
+                        realreceiver = r['id']
+                except:
+                    pass
+                try:
+                    if(r['public_key'] == makeRSAjsonSendable(receiver)):
+                        realreceiver = r['id']
+                except:
+                    pass
+                try:
+                    if(receiver == self.wallet.public_key):
+                        realreceiver = self.id
+                except:
+                    pass
+                try:
+                    if(makeRSAjsonSendable(receiver) == makeRSAjsonSendable(self.wallet.public_key)):
+                        realreceiver = self.id
+                except:
+                    pass
+        transaction = Transaction(sender, sender_private_key, receiver, amount, reals=realsender, realr=realreceiver)
+
+
         # transaction.transaction_inputs = ...
         if(transaction.signature):
             transactionjson = jsonpickle.encode(transaction)
@@ -58,15 +107,15 @@ class Node:
     def broadcast_transaction(self, transaction, r):
         baseurl = 'http://{}:{}/'.format(r['ip'],r['port'])
         transactionjson = jsonpickle.encode(transaction)
-        print("I am node with id {} and I am broadcasting the transaction ({}) to node {} with url {}".format(self.id, transaction.transaction_id_hex,  r['id'], baseurl))
+        # print("I am node with id {} and I am broadcasting the transaction ({}) to node {} with url {}".format(self.id, transaction.transaction_id_hex,  r['id'], baseurl))
 
         res = requests.post(baseurl + "ValidateTransaction", json = {'transaction':transactionjson})
 
-        print(res.text)
+        # print(res.text)
 
 
     def validate_transaction(self, transaction):
-        print("Validation I am node {} right now".format(self.id))
+        # print("Validation I am node {} right now".format(self.id))
         # k = 1
         # for r in self.ring:
         #     temp_key = RSA.generate(2048, e=65537)
@@ -92,15 +141,16 @@ class Node:
     def add_transaction_to_block(self, transaction):
     	capacity = self.current_block.capacity
     	if(self.chain): # first transaction
-            print("I am node with id {} and I am adding transaction ({}) to block ({})".format(self.id, transaction.transaction_id_hex, self.current_block.timestamp))
+            # print("I am node with id {} and I am adding transaction ({}) to block ({})".format(self.id, transaction.transaction_id_hex, self.current_block.timestamp))
             self.current_block.add_transaction(transaction)
             #if enough transactions  mine
-            print(len(self.current_block.listOfTransactions), capacity)
+            # print(len(self.current_block.listOfTransactions), capacity)
             if(len(self.current_block.listOfTransactions) == capacity):
                 mined_block = self.mine_block(self.current_block)
                 print ("Mined block: ", mined_block)
                 if(not type(mined_block) == type(-1)):
                     self.chain.add_block_to_chain(mined_block)
+                    self.chain.printMe()
                     self.previous_block = None
                     for r in self.ring:
                         start_new_thread(self.broadcast_block, (mined_block, r, ))
@@ -108,36 +158,36 @@ class Node:
                 if (not self.previous_block):
                     self.previous_block = self.current_block
                     self.current_block = self.create_new_block(self.current_block.index + 1, self.current_block.currentHash_hex, None, time.time(), self.current_block.difficulty, self.current_block.capacity)
-                    print("Creating new block!")
+                    # print("Creating new block!")
                 else:
-                    print("Cannot create new block...")
+                    # print("Cannot create new block...")
                     while (True):
                         print ("Previous block", self.previous_block)
                         time.sleep(10)
                         if (not self.previous_block):
                             self.previous_block = self.current_block
                             self.current_block = self.create_new_block(self.current_block.index + 1, self.current_block.currentHash_hex, None, time.time(), self.current_block.difficulty, self.current_block.capacity)
-                            print("Creating new block!")
+                            # print("Creating new block!")
                             break
     	else:
     		self.current_block.add_transaction(transaction)
 
 
     def mine_block(self, block):
-        print("Node {} is mining block {}".format(self.id, block.index))
+        # print("Node {} is mining block {}".format(self.id, block.index))
         block.nonce = 0
         winner = 1
         while ( not (block.myHash(block.nonce).hexdigest().startswith('0'* block.difficulty))):
             block.nonce += 1
             if(self.chain.chain[-1].index == block.index):
                 winner = 0
-                print("I lost :(")
+                # print("I lost :(")
                 break
             # print(block.myHash(block.nonce).hexdigest())
         if(winner):
             block.currentHash = SHA.new((str(block.index)+str(block.previousHash_hex)+str(block.nonce)).encode())
-            print("I won (Node {}), broadcasting victory...".format(self.id))
-            print("i found nonce {} for block {}".format(block.nonce, block.index))
+            # print("I won (Node {}), broadcasting victory...".format(self.id))
+            # print("i found nonce {} for block {}".format(block.nonce, block.index))
             return block
         else:
             return -1
@@ -148,9 +198,9 @@ class Node:
         baseurl = 'http://{}:{}/'.format(r['ip'],r['port'])
 
         blockjson = jsonpickle.encode(block)
-        print("I am node with id {} and I am broadcasting block ({}) to {}".format(self.id, block.timestamp, baseurl))
+        # print("I am node with id {} and I am broadcasting block ({}) to {}".format(self.id, block.timestamp, baseurl))
         res = requests.post(baseurl + "ValidateBlock", json = {'block':blockjson})
-        print(res.text)
+        # print(res.text)
     # def valid_proof(.., difficulty=MINING_DIFFICULTY):
 
 
@@ -159,14 +209,14 @@ class Node:
     #concencus functions
 
     def validate_block(self, block):
-        print("I am node with id {} and I am Validating block ({})".format(self.id, block.timestamp))
-        print("The nonce is {} for block {}".format(block.nonce, block.index))
+        # print("I am node with id {} and I am Validating block ({})".format(self.id, block.timestamp))
+        # print("The nonce is {} for block {}".format(block.nonce, block.index))
         curr_hash = SHA.new((str(block.index)+str(block.previousHash_hex)+str(block.nonce)).encode())
         if (curr_hash.hexdigest().startswith('0'* block.difficulty)):
-            print(block.previousHash_hex)
-            print(block.currentHash_hex)
-            print(self.chain.chain[-1].currentHash_hex)
-            print(len(self.chain.chain))
+            # print(block.previousHash_hex)
+            # print(block.currentHash_hex)
+            # print(self.chain.chain[-1].currentHash_hex)
+            # print(len(self.chain.chain))
             if block.previousHash_hex == self.chain.chain[-1].currentHash_hex:
                 # if previousHash is same as actual previous hash.self.
                 self.previous_block = None
@@ -179,14 +229,14 @@ class Node:
 
 
     def validate_chain(self, blockchain):
-    	print("Validating blockchain...")
+    	# print("Validating blockchain...")
     	for block in blockchain.chain:
     		if(block.index > 0):
     			# Block is not genesis
     			self.validate_block(block)
-    	print("Blockchain Validated.")
+    	# print("Blockchain Validated.")
 
     def resolve_conflicts(self, block):
     	#TODO resolve correct chain
-    	print("Resolving Conflicts")
+    	# print("Resolving Conflicts")
     	return True
