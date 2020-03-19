@@ -16,7 +16,7 @@ import Crypto.Random
 from Crypto.Hash import SHA
 from Crypto.PublicKey import RSA
 from Crypto.Signature import PKCS1_v1_5
-
+PRINTCHAIN = True
 
 app = Flask(__name__)
 CORS(app)
@@ -32,7 +32,7 @@ def makejsonSendableRSA(jsonSendable):
 
 def read_transaction():
     print("Reading input transactions")
-    f = open("5nodes_small/transactions" + str(node.id) + ".txt", "r")
+    f = open("3nodes_small/transactions" + str(node.id) + ".txt", "r")
     for j in range(10):
         id, amount = (f.readline()).split()
         for n in node.ring:
@@ -81,12 +81,11 @@ def ValidateBlock():
         valid = node.validate_block(block)
         if(valid):
             node.chain.add_block_to_chain(block)
-            node.chain.printMe()
+            if(PRINTCHAIN): node.chain.printMe()
             #TODO run actual transactions
             return "Block Validated by Node {} !".format(node.id), 200
         else:
-            print("Something went wrong, block is invalid")
-            return "Block can not be validated!", 400
+            return "Block can not be validated or already exists!", 400
 
 @app.route('/ValidateTransaction', methods=['POST'])
 def ValidateTransaction():

@@ -23,6 +23,10 @@ class Block:
 		# 	self.currentHash_hex = self.currentHash.hexdigest()
 		self.difficulty = difficulty
 		self.capacity = capacity
+	def __eq__(self, other):
+		"""Overrides the default implementation"""
+		ret = (self.index == other.index and self.previousHash == other.previousHash and self.timestamp == other.timestamp)
+		return ret
 
 	def myHash(self, nonce):
 		# self.currentHash = SHA.new((str(self.index)+str(self.previousHash)+str(self.timestamp)+str(self.nonce)).encode())

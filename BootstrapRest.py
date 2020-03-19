@@ -18,9 +18,20 @@ import Crypto.Random
 from Crypto.Hash import SHA
 from Crypto.PublicKey import RSA
 from Crypto.Signature import PKCS1_v1_5
+PRINTCHAIN = True
+
 
 
 ### JUST A BASIC EXAMPLE OF A REST API WITH FLASK
+def read_transaction():
+    print("Bootstrap Reading input transactions")
+    f = open("3nodes_small/transactions" + str(node.id) + ".txt", "r")
+    for j in range(10):
+        id, amount = (f.readline()).split()
+        for n in node.ring:
+            if int(n['id']) == int(id[-1]):
+                node.create_transaction(node.wallet.address, node.wallet.private_key, n['public_key'], int(amount))
+                break
 
 app = Flask(__name__)
 CORS(app)
@@ -55,6 +66,7 @@ def FirstBroadcast(ring):
 
         resRing = requests.post(baseurl + "UpdateRing", json = load)
         # print(resRing.text)
+    read_transaction()
 
 def MakeFirstTransaction(pk, ip , port):
     amount = 100
@@ -92,7 +104,7 @@ def ValidateBlock():
         valid = node.validate_block(block)
         if(valid):
             node.chain.add_block_to_chain(block)
-            node.chain.printMe()
+            if(PRINTCHAIN): node.chain.printMe()
             #TODO run actual transactions
             return "Block Validated by Node {} !".format(node.id), 200
         else:
@@ -190,7 +202,7 @@ if __name__ == '__main__':
     node.add_transaction_to_block(first_transaction)
     blockchain.add_block_to_chain(genesis_block)
     node.chain = blockchain
-    node.chain.printMe()
+    if(PRINTCHAIN): node.chain.printMe()
     # print("Genesis block, added to blockchain")
     # Create Second Block index is 2
     node.previous_block = None

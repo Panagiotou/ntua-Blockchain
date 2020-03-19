@@ -13,6 +13,8 @@ import requests
 from _thread import *
 import threading
 DEBUG = True
+PRINTCHAIN = True
+
 def makeRSAjsonSendable(rsa):
     return rsa.exportKey("PEM").decode('ascii')
 def makejsonSendableRSA(jsonSendable):
@@ -140,20 +142,37 @@ class Node:
 
     def add_transaction_to_block(self, transaction):
     	capacity = self.current_block.capacity
-    	if(self.chain): # first transaction
+    	if(self.chain): # not first transaction
+
             # print("I am node with id {} and I am adding transaction ({}) to block ({})".format(self.id, transaction.transaction_id_hex, self.current_block.timestamp))
-            self.current_block.add_transaction(transaction)
+
+            # TODO if(len(self.current_block.listOfTransactions) < capacity and transaction.transaction_id_hex not in self.NBCs):
+
+            if(len(self.current_block.listOfTransactions) < capacity):
+                self.current_block.add_transaction(transaction)
+            else:
+                while (True):
+                    time.sleep(1)
+                    if (len(self.current_block.listOfTransactions) < capacity):
+                        self.current_block.add_transaction(transaction)
+                        break
             #if enough transactions  mine
-            # print(len(self.current_block.listOfTransactions), capacity)
+            print(len(self.current_block.listOfTransactions), capacity)
             if(len(self.current_block.listOfTransactions) == capacity):
+                print("Block {} is full".format(self.current_block.index))
                 mined_block = self.mine_block(self.current_block)
-                print ("Mined block: ", mined_block)
+                # print ("Mined block: ", mined_block.index)
                 if(not type(mined_block) == type(-1)):
                     self.chain.add_block_to_chain(mined_block)
-                    self.chain.printMe()
+                    if(PRINTCHAIN): self.chain.printMe()
                     self.previous_block = None
                     for r in self.ring:
                         start_new_thread(self.broadcast_block, (mined_block, r, ))
+                else:
+                    pass
+                    # Loser
+                    # print("I lost, lost block is")
+                    # self.current_block.printMe()
 
                 if (not self.previous_block):
                     self.previous_block = self.current_block
@@ -162,7 +181,7 @@ class Node:
                 else:
                     # print("Cannot create new block...")
                     while (True):
-                        print ("Previous block", self.previous_block)
+                        # print ("Previous block", self.previous_block)
                         time.sleep(10)
                         if (not self.previous_block):
                             self.previous_block = self.current_block
@@ -179,7 +198,7 @@ class Node:
         winner = 1
         while ( not (block.myHash(block.nonce).hexdigest().startswith('0'* block.difficulty))):
             block.nonce += 1
-            if(self.chain.chain[-1].index == block.index):
+            if(self.chain.chain[-1].index == block.index and self.chain.chain[-1].nonce > block.nonce):
                 winner = 0
                 # print("I lost :(")
                 break
@@ -217,6 +236,10 @@ class Node:
             # print(block.currentHash_hex)
             # print(self.chain.chain[-1].currentHash_hex)
             # print(len(self.chain.chain))
+            if(block.index <= self.chain.chain[-1].index):
+                # BLock Already exists
+                return False
+
             if block.previousHash_hex == self.chain.chain[-1].currentHash_hex:
                 # if previousHash is same as actual previous hash.self.
                 self.previous_block = None
@@ -237,6 +260,8 @@ class Node:
     	# print("Blockchain Validated.")
 
     def resolve_conflicts(self, block):
-    	#TODO resolve correct chain
-    	# print("Resolving Conflicts")
-    	return True
+        print("RESOLVE CONFLICTS for block")
+        block.printMe()
+        #TODO resolve correct chain
+        # print("Resolving Conflicts")
+        return True
