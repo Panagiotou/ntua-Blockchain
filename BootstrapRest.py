@@ -25,7 +25,7 @@ PRINTCHAIN = True
 ### JUST A BASIC EXAMPLE OF A REST API WITH FLASK
 def read_transaction():
     print("Bootstrap Reading input transactions")
-    f = open("3nodes_small/transactions" + str(node.id) + ".txt", "r")
+    f = open("5nodes_small/transactions" + str(node.id) + ".txt", "r")
     for j in range(10):
         id, amount = (f.readline()).split()
         for n in node.ring:
@@ -168,13 +168,20 @@ def register_nodes():
       'start_ring': {'id': 0, 'ip': '127.0.0.1', 'port': '5000', 'public_key':makeRSAjsonSendable(BootstrapDictInstance['bootstrap_public_key']), 'balance': 0}\
       , 'current_block': jsonpickle.encode(node.current_block), 'NBCs': node.NBCs})
 
-# run it once fore every node
+@app.route('/Chain', methods=['GET'])
+def Chain():
+    return {'chain': jsonpickle.encode(node.chain)}
+
+@app.route('/PrintChain', methods=['GET'])
+def PrintChain():
+    node.chain.printMe()
+    return "OK", 200
 
 if __name__ == '__main__':
     from argparse import ArgumentParser
     BLOCK_CAPACITY = 2
     MINING_DIFFICULTY = 4
-    N = 3  #Number of nodes i  the system
+    N = 5  #Number of nodes i  the system
 
     blockchain = Blockchain()
 
@@ -221,5 +228,5 @@ if __name__ == '__main__':
     node.NBCs.append([first_transaction.amount, inputs])
     for i in range(1,N):
         node.NBCs.append([0,[]])
-        
+
     app.run(host='127.0.0.1', port=port, debug=True, use_reloader=False)

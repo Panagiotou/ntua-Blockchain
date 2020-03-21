@@ -13,3 +13,7 @@ class Blockchain:
             b.printMe()
         print()
         print()
+        for b in self.chain:
+            print(b.index, end=" ")
+        print()
+        print()

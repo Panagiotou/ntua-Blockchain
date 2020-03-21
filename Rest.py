@@ -32,7 +32,7 @@ def makejsonSendableRSA(jsonSendable):
 
 def read_transaction():
     print("Reading input transactions")
-    f = open("3nodes_small/transactions" + str(node.id) + ".txt", "r")
+    f = open("5nodes_small/transactions" + str(node.id) + ".txt", "r")
     for j in range(10):
         id, amount = (f.readline()).split()
         for n in node.ring:
@@ -142,12 +142,20 @@ def ContactBootstrapNode(baseurl, host, port):
 
     blockchain = jsonpickle.decode(rejson["blockchain"])
     node.chain = blockchain
-    node.validate_chain(blockchain)
+    # node.validate_chain(blockchain)
     #if(len(blockchain.chain) == 1):
     node.previous_block = None
     node.current_block = jsonpickle.decode(rejson["current_block"])
 
     # print("Now I can create transactions!")
+@app.route('/Chain', methods=['GET'])
+def Chain():
+    return {'chain': jsonpickle.encode(node.chain)}
+
+@app.route('/PrintChain', methods=['GET'])
+def PrintChain():
+    node.chain.printMe()
+    return "OK", 200
 
 if __name__ == '__main__':
     from argparse import ArgumentParser

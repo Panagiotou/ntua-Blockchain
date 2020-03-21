@@ -250,6 +250,7 @@ class Node:
             # print(len(self.chain.chain))
             if(block.index <= self.chain.chain[-1].index):
                 # BLock Already exists
+                self.resolve_conflicts(block)
                 return False
 
             if block.previousHash_hex == self.chain.chain[-1].currentHash_hex:
@@ -274,6 +275,16 @@ class Node:
     def resolve_conflicts(self, block):
         print("RESOLVE CONFLICTS for block")
         block.printMe()
-        #TODO resolve correct chain
-        # print("Resolving Conflicts")
-        return True
+        maxlen = len(self.chain.chain)
+        tempchain = self.chain
+        for r in self.ring:
+            baseurl = 'http://{}:{}/'.format(r['ip'],r['port'])
+            # print("I am node with id {} and I am broadcasting block ({}) to {}".format(self.id, block.timestamp, baseurl))
+            res = requests.get(baseurl + "Chain").json()
+            somechain = jsonpickle.decode(res["chain"])
+            if(len(somechain.chain) > maxlen):
+                tempchain = somechain
+                maxlen = len(somechain.chain)
+                print("chain changed")
+
+        self.chain = tempchain
