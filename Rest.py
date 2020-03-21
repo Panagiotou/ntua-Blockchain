@@ -103,6 +103,14 @@ def ValidateTransaction():
     valid = node.validate_transaction(transaction)
     if(valid):
         node.add_transaction_to_block(transaction)
+
+        realsender = int(transaction.reals)
+        realreceiver = int(transaction.realr)
+        node.NBCs[realsender][0] = node.NBCs[realsender][0] - transaction.amount
+        node.NBCs[realsender][1].append(transaction.transaction_id_hex)
+        node.NBCs[realreceiver][0] = node.NBCs[realreceiver][0] + transaction.amount
+        node.NBCs[realreceiver][1].append(transaction.transaction_id_hex)
+
         return "Transaction Validated by Node {} !".format(node.id), 200
     else:
         return "Error: Not valid!", 400
@@ -123,6 +131,8 @@ def ContactBootstrapNode(baseurl, host, port):
     myid = rejson["id"]
     bootstrap_public_key = makejsonSendableRSA(rejson["bootstrap_public_key"])
     block_capacity = rejson["block_capacity"]
+    NBCs = rejson['NBCs']
+    node.NBCs = NBCs
     node.id = myid
     node.myip = host
     node.myport = port

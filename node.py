@@ -26,7 +26,7 @@ class Node:
         self.chain = None
         self.current_id_count = None # +1 every time a node is added
         self.id = None # 0...n-1
-        self.NBCs = None
+        self.NBCs = []
         self.wallet = None # created with create_wallet()
         self.ring = []   #here we store information for every node, as its id, its address (ip:port) its public key and its balance
         self.create_wallet()
@@ -93,8 +93,17 @@ class Node:
                     pass
         transaction = Transaction(sender, sender_private_key, receiver, amount, reals=realsender, realr=realreceiver)
 
+        if (not realsender == "genesis"):
+            transaction.transaction_inputs = self.NBCs[realsender][1]
 
-        # transaction.transaction_inputs = ...
+            output_id1 = transaction.transaction_id_hex + 'a'
+            output1 = [output_id1, transaction.transaction_id, int(realreceiver), amount]
+            transaction.transaction_outputs.append(output1)
+
+            output_id2 = transaction.transaction_id_hex + 'b'
+            output2 = [output_id2, transaction.transaction_id, int(realsender), self.NBCs[int(realsender)][0] - amount]
+            transaction.transaction_outputs.append(output2)
+
         if(transaction.signature):
             transactionjson = jsonpickle.encode(transaction)
             baseurl = 'http://{}:{}/'.format(self.myip, self.myport)
@@ -134,7 +143,10 @@ class Node:
         signature=transaction.signature
         pubkey=sender_address
         verified = PKCS1_v1_5.new(pubkey).verify(h, signature)
-        if(verified):
+
+        realsender = transaction.reals
+        if(verified and transaction.amount<=self.NBCs[int(realsender)][0]):
+        #if(verified):
             return True
         else:
             return False

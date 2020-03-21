@@ -32,7 +32,7 @@ class Transaction:
         self.transaction_myid = str(sender_address)+str(recipient_address)+str(value) + str(self.rand)
         #self.transaction_id_sendable = makejsonSendableRSA(self.transaction_id)
         self.transaction_inputs = [] # λίστα από Transaction Input
-        self.transaction_outputs = [self.transaction_id, self.receiver_address, value] # λίστα από Transaction Output
+        self.transaction_outputs = [] # λίστα από Transaction Output
         self.transaction_id_hex=self.transaction_id.hexdigest()
         self.signature = None
         if(not type(self.sender_address) == type(0)):

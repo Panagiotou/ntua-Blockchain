@@ -124,6 +124,14 @@ def ValidateTransaction():
     valid = node.validate_transaction(transaction)
     if(valid):
         node.add_transaction_to_block(transaction)
+
+        realsender = int(transaction.reals)
+        realreceiver = int(transaction.realr)
+        node.NBCs[realsender][0] = node.NBCs[realsender][0] - transaction.amount
+        node.NBCs[realsender][1].append(transaction.transaction_id_hex)
+        node.NBCs[realreceiver][0] = node.NBCs[realreceiver][0] + transaction.amount
+        node.NBCs[realreceiver][1].append(transaction.transaction_id_hex)
+
         return "Transaction Validated!", 200
 
 @app.route('/nodes/register', methods=['POST'])
@@ -158,7 +166,7 @@ def register_nodes():
     return  jsonify({'id':BootstrapDictInstance['nodeCount']-1, 'bootstrap_public_key':makeRSAjsonSendable(BootstrapDictInstance['bootstrap_public_key']),\
      'blockchain': blockchainjson, 'block_capacity': BLOCK_CAPACITY,\
       'start_ring': {'id': 0, 'ip': '127.0.0.1', 'port': '5000', 'public_key':makeRSAjsonSendable(BootstrapDictInstance['bootstrap_public_key']), 'balance': 0}\
-      , 'current_block': jsonpickle.encode(node.current_block)})
+      , 'current_block': jsonpickle.encode(node.current_block), 'NBCs': node.NBCs})
 
 # run it once fore every node
 
@@ -208,4 +216,10 @@ if __name__ == '__main__':
     node.previous_block = None
     node.current_block = node.create_new_block(1, genesis_block.currentHash_hex, None, time.time(), MINING_DIFFICULTY, BLOCK_CAPACITY)
 
+    inputs = []
+    inputs.append(first_transaction.transaction_id_hex)
+    node.NBCs.append([first_transaction.amount, inputs])
+    for i in range(1,N):
+        node.NBCs.append([0,[]])
+        
     app.run(host='127.0.0.1', port=port, debug=True, use_reloader=False)
