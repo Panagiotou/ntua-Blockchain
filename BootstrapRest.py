@@ -68,7 +68,7 @@ def FirstBroadcast(ring):
 
         resRing = requests.post(baseurl + "UpdateRing", json = load)
         # print(resRing.text)
-    # read_transaction()
+    read_transaction()
 
 def MakeFirstTransaction(pk, ip , port):
     amount = 100
@@ -107,6 +107,10 @@ def AddBlock():
         if(valid):
             node.chain.add_block_to_chain(block)
             if(PRINTCHAIN): node.chain.printMe()
+
+            #make history of completed transactions
+            for tran_iter in block.listOfTransactions:
+                node.completed_transactions.append(tran_iter)
             #TODO run actual transactions
         else:
             start_new_thread(node.resolve_conflicts,())

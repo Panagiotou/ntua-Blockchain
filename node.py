@@ -36,6 +36,7 @@ class Node:
         self.block_capacity = None
         self.myip = None
         self.myport = None
+        self.completed_transactions = []
         self.all_lock = threading.Lock()
 
     def create_new_block(self, index, previousHash_hex, nonce, timestamp, difficulty, capacity):
@@ -148,6 +149,14 @@ class Node:
             v_lock.release()
             return False
 
+        #Check duplicate
+        for trans_iter in self.completed_transactions:
+            if(transaction.transaction_id_hex == trans_iter.transaction_id_hex):
+            ##duplicate transaction
+                v_lock.release()
+                return False
+
+
         realsender = transaction.reals
         if(verified and transaction.amount<=self.NBCs[int(realsender)][0]):
             print("Result True")
@@ -163,6 +172,10 @@ class Node:
     def add_transaction_to_block(self, transaction, block):
         if(self.chain):
             self.all_lock.acquire()
+            print('Trani', transaction.transaction_id_hex)
+            block.printMe()
+            print(block.isInBlock(transaction.transaction_id_hex))
+            print(self.chain.isInChain(transaction.transaction_id_hex))
             if(self.chain.isInChain(transaction.transaction_id_hex) or block.isInBlock(transaction.transaction_id_hex)):
                 print("Transaction was already in chain or in block")
                 transaction.printMe()
