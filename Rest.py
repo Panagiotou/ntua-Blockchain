@@ -118,7 +118,7 @@ def ValidateTransaction():
     transaction = jsonpickle.decode(data["transaction"])
     valid = node.validate_transaction(transaction)
     if(valid):
-        node.add_transaction_to_block(transaction, node.current_block)
+        node.add_transaction_to_block(transaction, node.current_block, node.previous_block)
 
         realsender = int(transaction.reals)
         realreceiver = int(transaction.realr)

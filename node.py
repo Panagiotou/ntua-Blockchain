@@ -169,15 +169,24 @@ class Node:
             return False
 
 
-    def add_transaction_to_block(self, transaction, block):
+    def add_transaction_to_block(self, transaction, block, prev_block):
+
+        if(prev_block):
+            print("NOT NULL")
+            self.all_lock.acquire()
+            if(prev_block.isInBlock(transaction.transaction_id_hex)):
+                print("Transaction was already in prev_block", transaction.transaction_id_hex)
+                transaction.printMe()
+                self.all_lock.release()
+                return 0
+            else:
+                self.all_lock.release()
+
+
         if(self.chain):
             self.all_lock.acquire()
-            print('Trani', transaction.transaction_id_hex)
-            block.printMe()
-            print(block.isInBlock(transaction.transaction_id_hex))
-            print(self.chain.isInChain(transaction.transaction_id_hex))
             if(self.chain.isInChain(transaction.transaction_id_hex) or block.isInBlock(transaction.transaction_id_hex)):
-                print("Transaction was already in chain or in block")
+                print("Transaction was already in chain or in block", transaction.transaction_id_hex)
                 transaction.printMe()
                 self.all_lock.release()
                 return 0
@@ -188,11 +197,11 @@ class Node:
         capacity = block.capacity
         while(len(block.listOfTransactions) == capacity):
             print("OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
+            # self.all_lock.release()
+            mined_block = self.mine_block(block)
             self.previous_block = block
             self.current_block = self.create_new_block(block.index + 1, block.currentHash_hex, None, time.time(), block.difficulty, block.capacity)
             self.all_lock.release()
-            mined_block = self.mine_block(block)
-            # self.all_lock.release()
             return
         block.add_transaction(transaction)
         print(len(block.listOfTransactions), capacity)
@@ -200,11 +209,11 @@ class Node:
             self.all_lock.release()
         if(len(block.listOfTransactions) == capacity):
             print("AAAA")
+            # self.all_lock.release()
+            mined_block = self.mine_block(block)
             self.previous_block = block
             self.current_block = self.create_new_block(block.index + 1, block.currentHash_hex, None, time.time(), block.difficulty, block.capacity)
             self.all_lock.release()
-            mined_block = self.mine_block(block)
-            # self.all_lock.release()
 
         return 1
 

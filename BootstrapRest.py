@@ -132,7 +132,7 @@ def ValidateTransaction():
     transaction = jsonpickle.decode(data["transaction"])
     valid = node.validate_transaction(transaction)
     if(valid):
-        node.add_transaction_to_block(transaction, node.current_block)
+        node.add_transaction_to_block(transaction, node.current_block, node.previous_block)
 
         realsender = int(transaction.reals)
         realreceiver = int(transaction.realr)
@@ -225,7 +225,7 @@ if __name__ == '__main__':
     # first transaction
     amount = 100*N
     first_transaction = node.create_transaction(0, None, bootstrap_public_key, amount)
-    node.add_transaction_to_block(first_transaction, genesis_block)
+    node.add_transaction_to_block(first_transaction, genesis_block, genesis_block)
     blockchain.add_block_to_chain(genesis_block)
     node.chain = blockchain
     if(PRINTCHAIN): node.chain.printMe()
