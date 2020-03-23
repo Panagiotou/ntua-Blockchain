@@ -30,6 +30,7 @@ def read_transaction():
         id, amount = (f.readline()).split()
         for n in node.ring:
             if int(n['id']) == int(id[-1]):
+                # time.sleep(1)
                 node.create_transaction(node.wallet.address, node.wallet.private_key, n['public_key'], int(amount))
                 break
 
@@ -52,6 +53,7 @@ def FirstBroadcast(ring):
         for k in ring:
             if(not k['ip'] == r['ip']):
                 ringWithoutSelf[str(u)] = k
+                u += 1
 
         load = ringWithoutSelf
 
@@ -66,7 +68,7 @@ def FirstBroadcast(ring):
 
         resRing = requests.post(baseurl + "UpdateRing", json = load)
         # print(resRing.text)
-    read_transaction()
+    # read_transaction()
 
 def MakeFirstTransaction(pk, ip , port):
     amount = 100
@@ -91,8 +93,8 @@ def MakeFirstTransaction(pk, ip , port):
 #     response = {'transactions': transactions}
 #     return jsonify(response), 200
 
-@app.route('/ValidateBlock', methods=['POST'])
-def ValidateBlock():
+@app.route('/AddBlock', methods=['POST'])
+def AddBlock():
     if request is None:
         return "Error: Please supply a valid Block", 400
     data = request.json
@@ -106,13 +108,16 @@ def ValidateBlock():
             node.chain.add_block_to_chain(block)
             if(PRINTCHAIN): node.chain.printMe()
             #TODO run actual transactions
-            return "Block Validated by Node {} !".format(node.id), 200
         else:
-            # print("Something went wrong, block is invalid")
-            return "Block can not be validated!", 400
+            start_new_thread(node.resolve_conflicts,())
+
+    return "OK", 200
 
 @app.route('/ValidateTransaction', methods=['POST'])
 def ValidateTransaction():
+    # if(node.id == 1):
+    #     print("Node 1 sleeping")
+    #     time.sleep(5)
     # print("request", request.json)
     if request is None:
         return "Error: Please supply a valid Transaction", 400
@@ -123,7 +128,7 @@ def ValidateTransaction():
     transaction = jsonpickle.decode(data["transaction"])
     valid = node.validate_transaction(transaction)
     if(valid):
-        node.add_transaction_to_block(transaction)
+        node.add_transaction_to_block(transaction, node.current_block)
 
         realsender = int(transaction.reals)
         realreceiver = int(transaction.realr)
@@ -132,7 +137,9 @@ def ValidateTransaction():
         node.NBCs[realreceiver][0] = node.NBCs[realreceiver][0] + transaction.amount
         node.NBCs[realreceiver][1].append(transaction.transaction_id_hex)
 
-        return "Transaction Validated!", 200
+        return "Transaction Validated by Node {} !".format(node.id), 200
+    else:
+        return "Error: Not valid!", 400
 
 @app.route('/nodes/register', methods=['POST'])
 def register_nodes():
@@ -170,7 +177,7 @@ def register_nodes():
 
 @app.route('/Chain', methods=['GET'])
 def Chain():
-    return {'chain': jsonpickle.encode(node.chain)}
+    return {'chain': jsonpickle.encode(node.chain), 'curr':jsonpickle.encode(node.current_block)}
 
 @app.route('/PrintChain', methods=['GET'])
 def PrintChain():
@@ -214,7 +221,7 @@ if __name__ == '__main__':
     # first transaction
     amount = 100*N
     first_transaction = node.create_transaction(0, None, bootstrap_public_key, amount)
-    node.add_transaction_to_block(first_transaction)
+    node.add_transaction_to_block(first_transaction, genesis_block)
     blockchain.add_block_to_chain(genesis_block)
     node.chain = blockchain
     if(PRINTCHAIN): node.chain.printMe()

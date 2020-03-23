@@ -6,6 +6,8 @@ from block import Block
 from node import Node
 from blockchain import Blockchain
 from wallet import Wallet
+from _thread import *
+import threading
 import transaction
 import json
 import sys, os
@@ -33,10 +35,14 @@ def makejsonSendableRSA(jsonSendable):
 def read_transaction():
     print("Reading input transactions")
     f = open("5nodes_small/transactions" + str(node.id) + ".txt", "r")
+    print(node.ring)
     for j in range(10):
-        id, amount = (f.readline()).split()
+        line = f.readline()
+        id, amount = (line).split()
         for n in node.ring:
             if int(n['id']) == int(id[-1]):
+                # time.sleep(1)
+                # print("LINE", line)
                 node.create_transaction(node.wallet.address, node.wallet.private_key, n['public_key'], int(amount))
                 break
 
@@ -62,14 +68,14 @@ def UpdateRing():
     for r in ring:
         r1 = r
         r1['public_key'] = makejsonSendableRSA(r1['public_key'])
+        print(r1)
         node.ring.append(r1)
     # print("My ring was updated by bootstrap Node!")
-
     read_transaction()
     return "Ring Updated for node {}".format(node.id), 200
 
-@app.route('/ValidateBlock', methods=['POST'])
-def ValidateBlock():
+@app.route('/AddBlock', methods=['POST'])
+def AddBlock():
     if request is None:
         return "Error: Please supply a valid Block", 400
     data = request.json
@@ -79,13 +85,18 @@ def ValidateBlock():
     block = jsonpickle.decode(data["block"])
     if(block.index > 0):
         valid = node.validate_block(block)
+        print("validating block")
+        block.printMe()
+        print("result", valid)
         if(valid):
             node.chain.add_block_to_chain(block)
             if(PRINTCHAIN): node.chain.printMe()
             #TODO run actual transactions
-            return "Block Validated by Node {} !".format(node.id), 200
         else:
-            return "Block can not be validated or already exists!", 400
+            start_new_thread(node.resolve_conflicts,())
+
+    return "OK", 200
+
 
 @app.route('/ValidateTransaction', methods=['POST'])
 def ValidateTransaction():
@@ -102,7 +113,7 @@ def ValidateTransaction():
     transaction = jsonpickle.decode(data["transaction"])
     valid = node.validate_transaction(transaction)
     if(valid):
-        node.add_transaction_to_block(transaction)
+        node.add_transaction_to_block(transaction, node.current_block)
 
         realsender = int(transaction.reals)
         realreceiver = int(transaction.realr)
@@ -150,7 +161,7 @@ def ContactBootstrapNode(baseurl, host, port):
     # print("Now I can create transactions!")
 @app.route('/Chain', methods=['GET'])
 def Chain():
-    return {'chain': jsonpickle.encode(node.chain)}
+    return {'chain': jsonpickle.encode(node.chain), 'curr':jsonpickle.encode(node.current_block)}
 
 @app.route('/PrintChain', methods=['GET'])
 def PrintChain():
