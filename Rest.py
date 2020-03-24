@@ -90,7 +90,18 @@ def AddBlock():
         print("result", valid)
         if(valid):
             node.chain.add_block_to_chain(block)
-            node.NBCs = node.current_NBCs
+            #node.NBCs = node.current_NBCs
+            for t in block.listOfTransactions:
+                outputs = t.transaction_outputs
+                id = outputs[0][2]
+                realreceiver = outputs[0][2]
+                realsender = outputs[1][2]
+                amount = outputs[0][3]
+                node.NBCs[realreceiver][0] = node.NBCs[realreceiver][0] + amount
+                node.NBCs[realreceiver][1] = node.NBCs[realreceiver][1].append(id)
+                node.NBCs[realsender][0] = node.NBCs[realsender][0] - amount
+                node.NBCs[realsender][1] = node.NBCs[realsender][1].append(id)
+
             if(PRINTCHAIN): node.chain.printMe()
 
             #make history of completed transactions

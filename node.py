@@ -272,23 +272,16 @@ class Node:
     def resolve_conflicts(self):
         maxlen = len(self.chain.chain)
         k = 0
-        old_chain = self.chain
-        old_curr = self.current_block
-        tempchain = self.chain
         for r in self.ring:
             baseurl = 'http://{}:{}/'.format(r['ip'],r['port'])
             res = requests.get(baseurl + "Chain").json()
             somechain = jsonpickle.decode(res["chain"])
             current_block = jsonpickle.decode(res["current_block"])
-            current_NBCs = jsonpickle.decode(res["current_NBCs"])
+            current_NBCs = res["current_NBCs"]
             if(len(somechain.chain) > maxlen):
                 k = 1
-                tempchain = somechain
-                temp_current_block = current_block
-                temp_current_NBCs = current_NBCs
+                self.chain = somechain
+                self.current_block = current_block
+                self.current_NBCs = current_NBCs
                 maxlen = len(somechain.chain)
                 print("chain changed")
-
-        self.chain = tempchain
-        self.current_block = temp_current_block
-        self.current_NBCs = temp_current_NBCs
