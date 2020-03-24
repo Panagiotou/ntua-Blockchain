@@ -40,3 +40,9 @@ class Block:
 		print("\t My Transaction list contains:")
 		for t in self.listOfTransactions:
 			t.printMe()
+
+	def isInBlock(self, hex):
+		for t in self.listOfTransactions:
+			if(t.transaction_id_hex == hex):
+				return True
+		return False
