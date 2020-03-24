@@ -91,6 +91,11 @@ def AddBlock():
         if(valid):
             node.chain.add_block_to_chain(block)
             if(PRINTCHAIN): node.chain.printMe()
+
+            #make history of completed transactions
+            for tran_iter in block.listOfTransactions:
+                node.completed_transactions.append(tran_iter)
+
             #TODO run actual transactions
         else:
             start_new_thread(node.resolve_conflicts,())
@@ -113,7 +118,7 @@ def ValidateTransaction():
     transaction = jsonpickle.decode(data["transaction"])
     valid = node.validate_transaction(transaction)
     if(valid):
-        node.add_transaction_to_block(transaction, node.current_block)
+        node.add_transaction_to_block(transaction, node.current_block, node.previous_block)
 
         realsender = int(transaction.reals)
         realreceiver = int(transaction.realr)
