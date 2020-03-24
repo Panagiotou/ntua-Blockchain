@@ -24,7 +24,7 @@ PRINTCHAIN = False
 
 ### JUST A BASIC EXAMPLE OF A REST API WITH FLASK
 def read_transaction():
-    time.sleep(1)
+    time.sleep(2)
     print("Bootstrap Reading input transactions")
     f = open("3nodes_small/transactions" + str(node.id) + ".txt", "r")
     for line in f:
@@ -122,17 +122,15 @@ def AddBlock():
                 realreceiver = outputs[0][2]
                 realsender = outputs[1][2]
                 amount = outputs[0][3]
-
+                t.printMe()
+                print("Before=", node.NBCs)
+                node.chain.printMe()
                 node.NBCs[realreceiver][0] = node.NBCs[realreceiver][0] + amount
                 node.NBCs[realreceiver][1].append(id)
                 node.NBCs[realsender][0] = node.NBCs[realsender][0] - amount
                 node.NBCs[realsender][1].append(id)
-                print(node.NBCs)
+                print("After=", node.NBCs)
 
-                if(node.NBCs[realsender][0] < 0 ):
-                    print("negative")
-                    block.printMe()
-                    node.chain.printMe()
             if(PRINTCHAIN): node.chain.printMe()
 
             #make history of completed transactions
@@ -166,10 +164,12 @@ def ValidateTransaction():
 
         realsender = int(transaction.reals)
         realreceiver = int(transaction.realr)
-        node.current_NBCs[realsender][0] = node.current_NBCs[realsender][0] - transaction.amount
-        node.current_NBCs[realsender][1].append(transaction.transaction_id_hex)
-        node.current_NBCs[realreceiver][0] = node.current_NBCs[realreceiver][0] + transaction.amount
-        node.current_NBCs[realreceiver][1].append(transaction.transaction_id_hex)
+        #TODO
+        #MARIA EDW GINTAI H MALAKIA 
+        # node.current_NBCs[realsender][0] = node.current_NBCs[realsender][0] - transaction.amount
+        # node.current_NBCs[realsender][1].append(transaction.transaction_id_hex)
+        # node.current_NBCs[realreceiver][0] = node.current_NBCs[realreceiver][0] + transaction.amount
+        # node.current_NBCs[realreceiver][1].append(transaction.transaction_id_hex)
 
         return "Transaction Validated by Node {} !".format(node.id), 200
     else:
@@ -277,5 +277,7 @@ if __name__ == '__main__':
     node.NBCs.append([first_transaction.amount, inputs])
     for i in range(1,N):
         node.NBCs.append([0,[]])
-    node.current_NBCs = node.NBCs
+
+    temp1 = node.NBCs
+    node.current_NBCs = temp1
     app.run(host='127.0.0.1', port=port, debug=True, use_reloader=False)

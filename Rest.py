@@ -34,7 +34,7 @@ def makejsonSendableRSA(jsonSendable):
     return RSA.importKey(jsonSendable.encode('ascii'))
 
 def read_transaction():
-    time.sleep(1)
+    time.sleep(2)
     print("Reading input transactions")
     f = open("3nodes_small/transactions" + str(node.id) + ".txt", "r")
     print(node.ring)
@@ -104,16 +104,14 @@ def AddBlock():
                 realreceiver = outputs[0][2]
                 realsender = outputs[1][2]
                 amount = outputs[0][3]
-
+                t.printMe()
+                print("Before=", node.NBCs)
+                node.chain.printMe()
                 node.NBCs[realreceiver][0] = node.NBCs[realreceiver][0] + amount
                 node.NBCs[realreceiver][1].append(id)
                 node.NBCs[realsender][0] = node.NBCs[realsender][0] - amount
                 node.NBCs[realsender][1].append(id)
-                print(node.NBCs)
-                if(node.NBCs[realsender][0] < 0 ):
-                    print("negative")
-                    block.printMe()
-                    node.chain.printMe()
+                print("After=", node.NBCs)
 
             if(PRINTCHAIN): node.chain.printMe()
 
