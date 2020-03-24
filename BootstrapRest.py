@@ -18,7 +18,7 @@ import Crypto.Random
 from Crypto.Hash import SHA
 from Crypto.PublicKey import RSA
 from Crypto.Signature import PKCS1_v1_5
-PRINTCHAIN = True
+PRINTCHAIN = False
 
 
 
@@ -101,16 +101,24 @@ def AddBlock():
     data = request.json
     if data is None:
         return "Error: Please supply a valid Block", 400
+    # print("is alr locked?", node.all_lock.locked())
+    while(node.all_lock.locked()):
+        # print("waiting")
+        time.sleep(1)
 
+    node.all_lock.acquire()
     block = jsonpickle.decode(data["block"])
     if(block.index > 0):
         valid = node.validate_block(block)
+        # print("validating block")
+        # block.printMe()
+        # print("result", valid)
         if(valid):
             node.chain.add_block_to_chain(block)
             #node.NBCs = node.current_NBCs
             for t in block.listOfTransactions:
                 outputs = t.transaction_outputs
-                id = outputs[0][2]
+                id = outputs[0][1]
                 realreceiver = outputs[0][2]
                 realsender = outputs[1][2]
                 amount = outputs[0][3]
@@ -119,14 +127,22 @@ def AddBlock():
                 node.NBCs[realreceiver][1].append(id)
                 node.NBCs[realsender][0] = node.NBCs[realsender][0] - amount
                 node.NBCs[realsender][1].append(id)
-            if(PRINTCHAIN): node.chain.printMe()
+                print(node.NBCs)
 
+                if(node.NBCs[realsender][0] < 0 ):
+                    print("negative")
+                    block.printMe()
+                    node.chain.printMe()
+            if(PRINTCHAIN): node.chain.printMe()
 
             #make history of completed transactions
             for tran_iter in block.listOfTransactions:
                 node.completed_transactions.append(tran_iter)
+
             #TODO run actual transactions
+            node.all_lock.release()
         else:
+            node.all_lock.release()
             start_new_thread(node.resolve_conflicts,())
 
     return "OK", 200
@@ -195,7 +211,8 @@ def register_nodes():
 
 @app.route('/Chain', methods=['GET'])
 def Chain():
-    return {'chain': jsonpickle.encode(node.chain), 'current_block': jsonpickle.encode(node.current_block), 'current_NBCs': node.current_NBCs, 'NBCs': node.NBCs}
+    return {'chain': jsonpickle.encode(node.chain), 'previous_block': jsonpickle.encode(node.previous_block), 'current_block': jsonpickle.encode(node.current_block), 'current_NBCs': node.current_NBCs, 'NBCs': node.NBCs}
+
 
 @app.route('/PrintChain', methods=['GET'])
 def PrintChain():

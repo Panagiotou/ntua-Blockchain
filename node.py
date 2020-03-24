@@ -13,7 +13,8 @@ import requests
 from _thread import *
 import threading
 DEBUG = True
-PRINTCHAIN = True
+PRINTCHAIN = False
+
 v_lock = threading.Lock()
 
 def makeRSAjsonSendable(rsa):
@@ -101,11 +102,11 @@ class Node:
             transaction.transaction_inputs = self.current_NBCs[realsender][1]
 
             output_id1 = transaction.transaction_id_hex + 'a'
-            output1 = [output_id1, transaction.transaction_id, int(realreceiver), amount]
+            output1 = [output_id1, transaction.transaction_id_hex, int(realreceiver), amount]
             transaction.transaction_outputs.append(output1)
 
             output_id2 = transaction.transaction_id_hex + 'b'
-            output2 = [output_id2, transaction.transaction_id, int(realsender), self.current_NBCs[int(realsender)][0] - amount]
+            output2 = [output_id2, transaction.transaction_id_hex, int(realsender), self.current_NBCs[int(realsender)][0] - amount]
             transaction.transaction_outputs.append(output2)
 
         if(transaction.signature):
@@ -113,8 +114,8 @@ class Node:
             baseurl = 'http://{}:{}/'.format(self.myip, self.myport)
             res = requests.post(baseurl + "ValidateTransaction", json = {'transaction':transactionjson})
         self.all_lock.acquire()
-        print("Created transaction")
-        transaction.printMe()
+        # print("Created transaction")
+        # transaction.printMe()
         self.all_lock.release()
         start_new_thread(self.broadcast_transaction, (transaction, ))
             # self.broadcast_transaction(transaction, baseurl)
@@ -136,8 +137,8 @@ class Node:
         # print("i am node {} validating transaction:".format(self.id))
         # transaction.printMe()
         v_lock.acquire()
-        print("Validating Transaction")
-        transaction.printMe()
+        # print("Validating Transaction")
+        # transaction.printMe()
 
         sender_address=transaction.sender_address
         ##use temp until h is passed humanly
@@ -173,11 +174,11 @@ class Node:
     def add_transaction_to_block(self, transaction, block, prev_block):
 
         if(prev_block):
-            print("NOT NULL")
+            # print("NOT NULL")
             self.all_lock.acquire()
             if(prev_block.isInBlock(transaction.transaction_id_hex)):
-                print("Transaction was already in prev_block", transaction.transaction_id_hex)
-                transaction.printMe()
+                # print("Transaction was already in prev_block", transaction.transaction_id_hex)
+                # transaction.printMe()
                 self.all_lock.release()
                 return 0
             else:
@@ -187,8 +188,8 @@ class Node:
         if(self.chain):
             self.all_lock.acquire()
             if(self.chain.isInChain(transaction.transaction_id_hex) or block.isInBlock(transaction.transaction_id_hex)):
-                print("Transaction was already in chain or in block", transaction.transaction_id_hex)
-                transaction.printMe()
+                # print("Transaction was already in chain or in block", transaction.transaction_id_hex)
+                # transaction.printMe()
                 self.all_lock.release()
                 return 0
             else:
@@ -197,7 +198,7 @@ class Node:
         # transaction.printMe()
         capacity = block.capacity
         while(len(block.listOfTransactions) == capacity):
-            print("OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
+            # print("OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
             # self.all_lock.release()
             mined_block = self.mine_block(block)
             self.previous_block = block
@@ -209,7 +210,7 @@ class Node:
         if(len(block.listOfTransactions) < capacity):
             self.all_lock.release()
         if(len(block.listOfTransactions) == capacity):
-            print("AAAA")
+            # print("AAAA")
             # self.all_lock.release()
             mined_block = self.mine_block(block)
             self.previous_block = block
@@ -225,11 +226,13 @@ class Node:
             block.nonce += 1
             # print(block.myHash(block.nonce).hexdigest())
 
-        print("Validate own block")
+        # print("Validate own block")
+        self.all_lock.release()
         baseurl = 'http://{}:{}/'.format(self.myip, self.myport)
         blockjson = jsonpickle.encode(block)
         res = requests.post(baseurl + "AddBlock", json = {'block':blockjson})
-        print("Done")
+        self.all_lock.acquire()
+        # print("Done")
 
         start_new_thread(self.broadcast_block,(block,))
         return block
@@ -277,12 +280,14 @@ class Node:
             res = requests.get(baseurl + "Chain").json()
             somechain = jsonpickle.decode(res["chain"])
             current_block = jsonpickle.decode(res["current_block"])
+            previous_block = jsonpickle.decode(res["previous_block"])
             current_NBCs = res["current_NBCs"]
             NBCs = res["NBCs"]
             if(len(somechain.chain) > maxlen):
                 k = 1
                 self.chain = somechain
                 self.current_block = current_block
+                self.previous_block = previous_block
                 self.current_NBCs = current_NBCs
                 self.NBCs = NBCs
                 maxlen = len(somechain.chain)
