@@ -24,9 +24,10 @@ PRINTCHAIN = True
 
 ### JUST A BASIC EXAMPLE OF A REST API WITH FLASK
 def read_transaction():
+    time.sleep(1)
     print("Bootstrap Reading input transactions")
-    f = open("5nodes_small/transactions" + str(node.id) + ".txt", "r")
-    for j in range(10):
+    f = open("3nodes_small/transactions" + str(node.id) + ".txt", "r")
+    for line in f:
         id, amount = (f.readline()).split()
         for n in node.ring:
             if int(n['id']) == int(id[-1]):
@@ -113,10 +114,11 @@ def AddBlock():
                 realreceiver = outputs[0][2]
                 realsender = outputs[1][2]
                 amount = outputs[0][3]
+
                 node.NBCs[realreceiver][0] = node.NBCs[realreceiver][0] + amount
-                node.NBCs[realreceiver][1] = node.NBCs[realreceiver][1].append(id)
+                node.NBCs[realreceiver][1].append(id)
                 node.NBCs[realsender][0] = node.NBCs[realsender][0] - amount
-                node.NBCs[realsender][1] = node.NBCs[realsender][1].append(id)
+                node.NBCs[realsender][1].append(id)
             if(PRINTCHAIN): node.chain.printMe()
 
 
@@ -193,18 +195,25 @@ def register_nodes():
 
 @app.route('/Chain', methods=['GET'])
 def Chain():
-    return {'chain': jsonpickle.encode(node.chain), 'current_block': jsonpickle.encode(node.current_block), 'current_NBCs': node.current_NBCs}
+    return {'chain': jsonpickle.encode(node.chain), 'current_block': jsonpickle.encode(node.current_block), 'current_NBCs': node.current_NBCs, 'NBCs': node.NBCs}
 
 @app.route('/PrintChain', methods=['GET'])
 def PrintChain():
     node.chain.printMe()
     return "OK", 200
 
+@app.route('/PrintWallet', methods=['GET'])
+def PrintWallet():
+    print("NBCs")
+    for nbc in node.NBCs:
+        print("\t", nbc[0])
+    return "OK", 200
+
 if __name__ == '__main__':
     from argparse import ArgumentParser
     BLOCK_CAPACITY = 2
     MINING_DIFFICULTY = 4
-    N = 5  #Number of nodes i  the system
+    N = 3  #Number of nodes i  the system
 
     blockchain = Blockchain()
 

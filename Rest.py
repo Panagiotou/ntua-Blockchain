@@ -33,10 +33,11 @@ def makejsonSendableRSA(jsonSendable):
     return RSA.importKey(jsonSendable.encode('ascii'))
 
 def read_transaction():
+    time.sleep(1)
     print("Reading input transactions")
-    f = open("5nodes_small/transactions" + str(node.id) + ".txt", "r")
+    f = open("3nodes_small/transactions" + str(node.id) + ".txt", "r")
     print(node.ring)
-    for j in range(10):
+    for line in f:
         line = f.readline()
         id, amount = (line).split()
         for n in node.ring:
@@ -97,10 +98,11 @@ def AddBlock():
                 realreceiver = outputs[0][2]
                 realsender = outputs[1][2]
                 amount = outputs[0][3]
+
                 node.NBCs[realreceiver][0] = node.NBCs[realreceiver][0] + amount
-                node.NBCs[realreceiver][1] = node.NBCs[realreceiver][1].append(id)
+                node.NBCs[realreceiver][1].append(id)
                 node.NBCs[realsender][0] = node.NBCs[realsender][0] - amount
-                node.NBCs[realsender][1] = node.NBCs[realsender][1].append(id)
+                node.NBCs[realsender][1].append(id)
 
             if(PRINTCHAIN): node.chain.printMe()
 
@@ -180,11 +182,18 @@ def ContactBootstrapNode(baseurl, host, port):
     # print("Now I can create transactions!")
 @app.route('/Chain', methods=['GET'])
 def Chain():
-    return {'chain': jsonpickle.encode(node.chain), 'current_block': jsonpickle.encode(node.current_block), 'current_NBCs': node.current_NBCs}
+    return {'chain': jsonpickle.encode(node.chain), 'current_block': jsonpickle.encode(node.current_block), 'current_NBCs': node.current_NBCs, 'NBCs': node.NBCs}
 
 @app.route('/PrintChain', methods=['GET'])
 def PrintChain():
     node.chain.printMe()
+    return "OK", 200
+
+@app.route('/PrintWallet', methods=['GET'])
+def PrintWallet():
+    print("NBCs")
+    for nbc in node.NBCs:
+        print("\t", nbc[0])
     return "OK", 200
 
 if __name__ == '__main__':

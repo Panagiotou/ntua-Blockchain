@@ -278,10 +278,12 @@ class Node:
             somechain = jsonpickle.decode(res["chain"])
             current_block = jsonpickle.decode(res["current_block"])
             current_NBCs = res["current_NBCs"]
+            NBCs = res["NBCs"]
             if(len(somechain.chain) > maxlen):
                 k = 1
                 self.chain = somechain
                 self.current_block = current_block
                 self.current_NBCs = current_NBCs
+                self.NBCs = NBCs
                 maxlen = len(somechain.chain)
                 print("chain changed")
