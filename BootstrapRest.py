@@ -104,8 +104,8 @@ def ValidateBlock():
         valid = node.validate_block(block)
         if(valid):
             node.chain.add_block_to_chain(block)
+            node.NBCs = node.current_NBCs
             if(PRINTCHAIN): node.chain.printMe()
-            #TODO run actual transactions
             return "Block Validated by Node {} !".format(node.id), 200
         else:
             # print("Something went wrong, block is invalid")
@@ -127,10 +127,10 @@ def ValidateTransaction():
 
         realsender = int(transaction.reals)
         realreceiver = int(transaction.realr)
-        node.NBCs[realsender][0] = node.NBCs[realsender][0] - transaction.amount
-        node.NBCs[realsender][1].append(transaction.transaction_id_hex)
-        node.NBCs[realreceiver][0] = node.NBCs[realreceiver][0] + transaction.amount
-        node.NBCs[realreceiver][1].append(transaction.transaction_id_hex)
+        node.current_NBCs[realsender][0] = node.current_NBCs[realsender][0] - transaction.amount
+        node.current_NBCs[realsender][1].append(transaction.transaction_id_hex)
+        node.current_NBCs[realreceiver][0] = node.current_NBCs[realreceiver][0] + transaction.amount
+        node.current_NBCs[realreceiver][1].append(transaction.transaction_id_hex)
 
         return "Transaction Validated!", 200
 
@@ -166,11 +166,11 @@ def register_nodes():
     return  jsonify({'id':BootstrapDictInstance['nodeCount']-1, 'bootstrap_public_key':makeRSAjsonSendable(BootstrapDictInstance['bootstrap_public_key']),\
      'blockchain': blockchainjson, 'block_capacity': BLOCK_CAPACITY,\
       'start_ring': {'id': 0, 'ip': '127.0.0.1', 'port': '5000', 'public_key':makeRSAjsonSendable(BootstrapDictInstance['bootstrap_public_key']), 'balance': 0}\
-      , 'current_block': jsonpickle.encode(node.current_block), 'NBCs': node.NBCs})
+      , 'current_block': jsonpickle.encode(node.current_block), 'NBCs': node.NBCs, 'current_NBCs': node.current_NBCs})
 
 @app.route('/Chain', methods=['GET'])
 def Chain():
-    return {'chain': jsonpickle.encode(node.chain)}
+    return {'chain': jsonpickle.encode(node.chain), 'current_block': jsonpickle.encode(node.current_block), 'current_NBCs': node.current_NBCs}
 
 @app.route('/PrintChain', methods=['GET'])
 def PrintChain():
@@ -181,7 +181,7 @@ if __name__ == '__main__':
     from argparse import ArgumentParser
     BLOCK_CAPACITY = 2
     MINING_DIFFICULTY = 4
-    N = 5  #Number of nodes i  the system
+    N = 3  #Number of nodes i  the system
 
     blockchain = Blockchain()
 
@@ -228,5 +228,5 @@ if __name__ == '__main__':
     node.NBCs.append([first_transaction.amount, inputs])
     for i in range(1,N):
         node.NBCs.append([0,[]])
-
+    node.current_NBCs = node.NBCs
     app.run(host='127.0.0.1', port=port, debug=True, use_reloader=False)

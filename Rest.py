@@ -81,8 +81,8 @@ def ValidateBlock():
         valid = node.validate_block(block)
         if(valid):
             node.chain.add_block_to_chain(block)
+            node.NBCs = node.current_NBCs
             if(PRINTCHAIN): node.chain.printMe()
-            #TODO run actual transactions
             return "Block Validated by Node {} !".format(node.id), 200
         else:
             return "Block can not be validated or already exists!", 400
@@ -106,10 +106,10 @@ def ValidateTransaction():
 
         realsender = int(transaction.reals)
         realreceiver = int(transaction.realr)
-        node.NBCs[realsender][0] = node.NBCs[realsender][0] - transaction.amount
-        node.NBCs[realsender][1].append(transaction.transaction_id_hex)
-        node.NBCs[realreceiver][0] = node.NBCs[realreceiver][0] + transaction.amount
-        node.NBCs[realreceiver][1].append(transaction.transaction_id_hex)
+        node.current_NBCs[realsender][0] = node.current_NBCs[realsender][0] - transaction.amount
+        node.current_NBCs[realsender][1].append(transaction.transaction_id_hex)
+        node.current_NBCs[realreceiver][0] = node.current_NBCs[realreceiver][0] + transaction.amount
+        node.current_NBCs[realreceiver][1].append(transaction.transaction_id_hex)
 
         return "Transaction Validated by Node {} !".format(node.id), 200
     else:
@@ -132,7 +132,9 @@ def ContactBootstrapNode(baseurl, host, port):
     bootstrap_public_key = makejsonSendableRSA(rejson["bootstrap_public_key"])
     block_capacity = rejson["block_capacity"]
     NBCs = rejson['NBCs']
+    current_NBCs = rejson['current_NBCs']
     node.NBCs = NBCs
+    node.current_NBCs = current_NBCs
     node.id = myid
     node.myip = host
     node.myport = port
@@ -150,7 +152,7 @@ def ContactBootstrapNode(baseurl, host, port):
     # print("Now I can create transactions!")
 @app.route('/Chain', methods=['GET'])
 def Chain():
-    return {'chain': jsonpickle.encode(node.chain)}
+    return {'chain': jsonpickle.encode(node.chain), 'current_block': jsonpickle.encode(node.current_block), 'current_NBCs': node.current_NBCs}
 
 @app.route('/PrintChain', methods=['GET'])
 def PrintChain():

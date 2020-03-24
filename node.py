@@ -27,6 +27,7 @@ class Node:
         self.current_id_count = None # +1 every time a node is added
         self.id = None # 0...n-1
         self.NBCs = []
+        self.current_NBCs = []
         self.wallet = None # created with create_wallet()
         self.ring = []   #here we store information for every node, as its id, its address (ip:port) its public key and its balance
         self.create_wallet()
@@ -94,14 +95,14 @@ class Node:
         transaction = Transaction(sender, sender_private_key, receiver, amount, reals=realsender, realr=realreceiver)
 
         if (not realsender == "genesis"):
-            transaction.transaction_inputs = self.NBCs[realsender][1]
+            transaction.transaction_inputs = self.current_NBCs[realsender][1]
 
             output_id1 = transaction.transaction_id_hex + 'a'
             output1 = [output_id1, transaction.transaction_id, int(realreceiver), amount]
             transaction.transaction_outputs.append(output1)
 
             output_id2 = transaction.transaction_id_hex + 'b'
-            output2 = [output_id2, transaction.transaction_id, int(realsender), self.NBCs[int(realsender)][0] - amount]
+            output2 = [output_id2, transaction.transaction_id, int(realsender), self.current_NBCs[int(realsender)][0] - amount]
             transaction.transaction_outputs.append(output2)
 
         if(transaction.signature):
@@ -145,7 +146,7 @@ class Node:
         verified = PKCS1_v1_5.new(pubkey).verify(h, signature)
 
         realsender = transaction.reals
-        if(verified and transaction.amount<=self.NBCs[int(realsender)][0]):
+        if(verified and transaction.amount<=self.current_NBCs[int(realsender)][0]):
         #if(verified):
             return True
         else:
@@ -282,9 +283,15 @@ class Node:
             # print("I am node with id {} and I am broadcasting block ({}) to {}".format(self.id, block.timestamp, baseurl))
             res = requests.get(baseurl + "Chain").json()
             somechain = jsonpickle.decode(res["chain"])
+            current_block = jsonpickle.decode(res["current_block"])
+            current_NBCs = jsonpickle.decode(res["current_NBCs"])
             if(len(somechain.chain) > maxlen):
                 tempchain = somechain
+                temp_current_block = current_block
+                temp_current_NBCs = current_NBCs
                 maxlen = len(somechain.chain)
                 print("chain changed")
 
         self.chain = tempchain
+        self.current_block = temp_current_block
+        self.current_NBCs = temp_current_NBCs
