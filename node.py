@@ -118,18 +118,18 @@ class Node:
         # print("Created transaction")
         # transaction.printMe()
         # self.all_lock.release()
-        start_new_thread(self.broadcast_transaction, (transaction, ))
+        for r in self.ring:
+            start_new_thread(self.broadcast_transaction, (transaction,r, ))
             # self.broadcast_transaction(transaction, baseurl)
         return transaction
 
 
-    def broadcast_transaction(self, transaction):
-        for r in self.ring:
-            baseurl = 'http://{}:{}/'.format(r['ip'],r['port'])
-            transactionjson = jsonpickle.encode(transaction)
-            # print("I am node with id {} and I am broadcasting the transaction ({}) to node {} with url {}".format(self.id, transaction.transaction_id_hex,  r['id'], baseurl))
+    def broadcast_transaction(self, transaction, r):
+        baseurl = 'http://{}:{}/'.format(r['ip'],r['port'])
+        transactionjson = jsonpickle.encode(transaction)
+        # print("I am node with id {} and I am broadcasting the transaction ({}) to node {} with url {}".format(self.id, transaction.transaction_id_hex,  r['id'], baseurl))
 
-            res = requests.post(baseurl + "ValidateTransaction", json = {'transaction':transactionjson})
+        res = requests.post(baseurl + "ValidateTransaction", json = {'transaction':transactionjson})
 
         # print(res.text)
 
@@ -180,59 +180,47 @@ class Node:
             return False
 
 
-    def add_transaction_to_block(self, transaction, block, prev_block):
+    def add_transaction_to_block(self, transaction):
+        self.all_lock.acquire()
+        self.current_block.add_transaction(transaction)
+        print(len(self.current_block.listOfTransactions), self.current_block.capacity)
 
-        print("before add", len(block.listOfTransactions))
-        # block.lock.acquire()
-        block.add_transaction(transaction)
-        print("after add", len(block.listOfTransactions))
-        print(len(block.listOfTransactions), block.capacity)
-        if(len(block.listOfTransactions) == block.capacity):
-            # print("AAAA")
-            # block.lock.release()
-            print("after if", len(block.listOfTransactions))
-            # self.all_lock.release()
-            mined_block = start_new_thread(self.mine_block,(block,))
-
-            self.previous_block = block
-            self.current_block = self.create_new_block(block.index + 1, block.currentHash_hex, None, time.time(), block.difficulty, block.capacity)
-            self.current_block.lock.acquire()
-            print("after new block", len(block.listOfTransactions))
-
-
-
-            # self.all_lock.release()
+        if(len(self.current_block.listOfTransactions) == self.current_block.capacity):
+            # mined_block = start_new_thread(self.mine_block,())
+            mined_block = self.mine_block()
         else:
-            pass
-            # block.lock.release()
+            try:
+                self.all_lock.release()
+            except:
+                pass
         return 1
 
-    def mine_block(self, block):
+    def mine_block(self):
         # print("Node {} is mining block {}".format(self.id, block.index))
-        block.nonce = 0
-        while ( not (block.myHash(block.nonce).hexdigest().startswith('0'* block.difficulty))):
-            block.nonce += 1
+        self.current_block.nonce = 0
+        while ( not (self.current_block.myHash(self.current_block.nonce).hexdigest().startswith('0'* self.current_block.difficulty))):
+            self.current_block.nonce += 1
             # print(block.myHash(block.nonce).hexdigest())
 
         # print("Validate own block")
         # self.all_lock.release()
         baseurl = 'http://{}:{}/'.format(self.myip, self.myport)
-        blockjson = jsonpickle.encode(block)
+        blockjson = jsonpickle.encode(self.current_block)
         res = requests.post(baseurl + "AddBlock", json = {'block':blockjson})
         # self.all_lock.acquire()
         # print("Done")
 
-        start_new_thread(self.broadcast_block,(block,))
-        return block
+        for r in self.ring:
+            start_new_thread(self.broadcast_block,(self.current_block,r))
+        return self.current_block
 
     # def valid_proof(.., difficulty=MINING_DIFFICULTY):
-    def broadcast_block(self, block):
-        for r in self.ring:
-            baseurl = 'http://{}:{}/'.format(r['ip'],r['port'])
+    def broadcast_block(self, block, r):
+        baseurl = 'http://{}:{}/'.format(r['ip'],r['port'])
 
-            blockjson = jsonpickle.encode(block)
-            # print("I am node with id {} and I am broadcasting block ({}) to {}".format(self.id, block.timestamp, baseurl))
-            res = requests.post(baseurl + "AddBlock", json = {'block':blockjson})
+        blockjson = jsonpickle.encode(block)
+        # print("I am node with id {} and I am broadcasting block ({}) to {}".format(self.id, block.timestamp, baseurl))
+        res = requests.post(baseurl + "AddBlock", json = {'block':blockjson})
         # print(res.text)
     # def valid_proof(.., difficulty=MINING_DIFFICULTY):
 
@@ -271,15 +259,16 @@ class Node:
             previous_block = jsonpickle.decode(res["previous_block"])
             current_NBCs = res["current_NBCs"]
             NBCs = res["NBCs"]
-            self.all_lock.acquire()
+
+            # self.all_lock.acquire()
             if(len(somechain.chain) > maxlen):
                 k = 1
                 self.chain = somechain
-                self.current_block = current_block
-                self.previous_block = previous_block
+                # self.current_block = self.create_new_block(current_block.index + 1, current_block.currentHash_hex, 0, time.time(), current_block.difficulty, current_block.capacity)
+                # self.previous_block = previous_block
                 self.current_NBCs = current_NBCs
                 self.NBCs = NBCs
                 maxlen = len(somechain.chain)
                 print("chain changed")
-            self.all_lock.release()
+            # self.all_lock.release()
         return

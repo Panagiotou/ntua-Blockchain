@@ -18,21 +18,22 @@ import Crypto.Random
 from Crypto.Hash import SHA
 from Crypto.PublicKey import RSA
 from Crypto.Signature import PKCS1_v1_5
+from copy import deepcopy
 PRINTCHAIN = False
 
 
 
 ### JUST A BASIC EXAMPLE OF A REST API WITH FLASK
 def read_transaction():
-    time.sleep(1)
+    time.sleep(2)
     print("Reading input transactions")
-    f = open("3nodes_small/transactions" + str(node.id) + ".txt", "r")
+    f = open("5nodes_small/transactions" + str(node.id) + ".txt", "r")
     print(node.ring)
     for line in f:
         id, amount = (line).split()
         for n in node.ring:
             if int(n['id']) == int(id[-1]):
-                time.sleep(1)
+                # time.sleep(1)
                 # print("LINE", line)
                 start_new_thread(node.create_transaction, (node.wallet.address, node.wallet.private_key, n['public_key'], int(amount),))
                 # node.create_transaction(node.wallet.address, node.wallet.private_key, n['public_key'], int(amount))
@@ -96,7 +97,6 @@ def MakeFirstTransaction(pk, ip , port):
 #
 #     response = {'transactions': transactions}
 #     return jsonify(response), 200
-
 @app.route('/AddBlock', methods=['POST'])
 def AddBlock():
     if request is None:
@@ -104,12 +104,7 @@ def AddBlock():
     data = request.json
     if data is None:
         return "Error: Please supply a valid Block", 400
-    # print("is alr locked?", node.all_lock.locked())
-    # while(node.all_lock.locked()):
-    #     # print("waiting")
-    #     time.sleep(1)
 
-    node.all_lock.acquire()
     block = jsonpickle.decode(data["block"])
     if(block.index > 0):
         valid = node.validate_block(block)
@@ -120,11 +115,12 @@ def AddBlock():
         print("chain at the moment")
         if(node.chain.chain):
             node.chain.printMe()
-        # print("validating block")
-        # block.printMe()
-        # print("result", valid)
+
         if(valid):
             node.chain.add_block_to_chain(block)
+
+            node.previous_block = block
+            node.current_block = node.create_new_block(block.index + 1, block.currentHash_hex, 0, time.time(), block.difficulty, block.capacity)
             #node.NBCs = node.current_NBCs
             for t in block.listOfTransactions:
                 outputs = t.transaction_outputs
@@ -132,23 +128,23 @@ def AddBlock():
                 realreceiver = outputs[0][2]
                 realsender = outputs[1][2]
                 amount = outputs[0][3]
-                t.printMe()
-                print("Before=", node.NBCs)
-                node.chain.printMe()
                 node.NBCs[realreceiver][0] = node.NBCs[realreceiver][0] + amount
                 node.NBCs[realreceiver][1].append(id)
                 node.NBCs[realsender][0] = node.NBCs[realsender][0] - amount
-                # node.NBCs[realsender][1].append(id)
-            #make history of completed transactions
+
             for tran_iter in block.listOfTransactions:
                 node.completed_transactions.append(tran_iter)
 
             #TODO run actual transactions
-            node.all_lock.release()
+            # node.all_lock.release()
         else:
-            node.all_lock.release()
-            start_new_thread(node.resolve_conflicts,())
-
+            # start_new_thread(node.resolve_conflicts,())
+            node.resolve_conflicts()
+            # node.all_lock.release()
+    try:
+        node.all_lock.release()
+    except:
+        pass
     return "OK", 200
 
 @app.route('/ValidateTransaction', methods=['POST'])
@@ -166,15 +162,12 @@ def ValidateTransaction():
     transaction = jsonpickle.decode(data["transaction"])
     valid = node.validate_transaction(transaction)
     if(valid):
-        node.current_block.lock.acquire()
-        node.add_transaction_to_block(transaction, node.current_block, node.previous_block)
-        node.current_block.lock.release()
-        # realsender = int(transaction.reals)
-        # realreceiver = int(transaction.realr)
-        # node.current_NBCs[realsender][0] = node.current_NBCs[realsender][0] - transaction.amount
-        # node.current_NBCs[realsender][1].append(transaction.transaction_id_hex)
-        # node.current_NBCs[realreceiver][0] = node.current_NBCs[realreceiver][0] + transaction.amount
-        # node.current_NBCs[realreceiver][1].append(transaction.transaction_id_hex)
+        # node.current_block.lock.acquire()
+        # node.all_lock.acquire()
+        node.add_transaction_to_block(transaction)
+        # node.all_lock.release()
+
+        # node.current_block.lock.release()
 
         return "Transaction Validated by Node {} !".format(node.id), 200
     else:
@@ -235,7 +228,7 @@ if __name__ == '__main__':
     from argparse import ArgumentParser
     BLOCK_CAPACITY = 2
     MINING_DIFFICULTY = 4
-    N = 3  #Number of nodes i  the system
+    N = 5  #Number of nodes i  the system
 
     blockchain = Blockchain()
 
@@ -268,14 +261,14 @@ if __name__ == '__main__':
     # first transaction
     amount = 100*N
     first_transaction = node.create_transaction(0, None, bootstrap_public_key, amount)
-    node.add_transaction_to_block(first_transaction, genesis_block, genesis_block)
+    node.add_transaction_to_block(first_transaction)
     blockchain.add_block_to_chain(genesis_block)
     node.chain = blockchain
     if(PRINTCHAIN): node.chain.printMe()
     # print("Genesis block, added to blockchain")
     # Create Second Block index is 2
     node.previous_block = None
-    node.current_block = node.create_new_block(1, genesis_block.currentHash_hex, None, time.time(), MINING_DIFFICULTY, BLOCK_CAPACITY)
+    node.current_block = node.create_new_block(1, genesis_block.currentHash_hex, 0, time.time(), MINING_DIFFICULTY, BLOCK_CAPACITY)
 
     inputs = []
     inputs.append(first_transaction.transaction_id_hex)
