@@ -25,14 +25,17 @@ PRINTCHAIN = False
 ### JUST A BASIC EXAMPLE OF A REST API WITH FLASK
 def read_transaction():
     time.sleep(1)
-    print("Bootstrap Reading input transactions")
+    print("Reading input transactions")
     f = open("3nodes_small/transactions" + str(node.id) + ".txt", "r")
+    print(node.ring)
     for line in f:
-        id, amount = (f.readline()).split()
+        id, amount = (line).split()
         for n in node.ring:
             if int(n['id']) == int(id[-1]):
-                # time.sleep(1)
-                node.create_transaction(node.wallet.address, node.wallet.private_key, n['public_key'], int(amount))
+                time.sleep(1)
+                # print("LINE", line)
+                start_new_thread(node.create_transaction, (node.wallet.address, node.wallet.private_key, n['public_key'], int(amount),))
+                # node.create_transaction(node.wallet.address, node.wallet.private_key, n['public_key'], int(amount))
                 break
 
 app = Flask(__name__)
@@ -102,14 +105,21 @@ def AddBlock():
     if data is None:
         return "Error: Please supply a valid Block", 400
     # print("is alr locked?", node.all_lock.locked())
-    while(node.all_lock.locked()):
-        # print("waiting")
-        time.sleep(1)
+    # while(node.all_lock.locked()):
+    #     # print("waiting")
+    #     time.sleep(1)
 
     node.all_lock.acquire()
     block = jsonpickle.decode(data["block"])
     if(block.index > 0):
         valid = node.validate_block(block)
+        print("validating block")
+        block.printMe()
+        print("result", valid)
+
+        print("chain at the moment")
+        if(node.chain.chain):
+            node.chain.printMe()
         # print("validating block")
         # block.printMe()
         # print("result", valid)
@@ -126,15 +136,7 @@ def AddBlock():
                 node.NBCs[realreceiver][0] = node.NBCs[realreceiver][0] + amount
                 node.NBCs[realreceiver][1].append(id)
                 node.NBCs[realsender][0] = node.NBCs[realsender][0] - amount
-                node.NBCs[realsender][1].append(id)
-                print(node.NBCs)
-
-                if(node.NBCs[realsender][0] < 0 ):
-                    print("negative")
-                    block.printMe()
-                    node.chain.printMe()
-            if(PRINTCHAIN): node.chain.printMe()
-
+                # node.NBCs[realsender][1].append(id)
             #make history of completed transactions
             for tran_iter in block.listOfTransactions:
                 node.completed_transactions.append(tran_iter)
@@ -162,14 +164,15 @@ def ValidateTransaction():
     transaction = jsonpickle.decode(data["transaction"])
     valid = node.validate_transaction(transaction)
     if(valid):
+        node.current_block.lock.acquire()
         node.add_transaction_to_block(transaction, node.current_block, node.previous_block)
-
-        realsender = int(transaction.reals)
-        realreceiver = int(transaction.realr)
-        node.current_NBCs[realsender][0] = node.current_NBCs[realsender][0] - transaction.amount
-        node.current_NBCs[realsender][1].append(transaction.transaction_id_hex)
-        node.current_NBCs[realreceiver][0] = node.current_NBCs[realreceiver][0] + transaction.amount
-        node.current_NBCs[realreceiver][1].append(transaction.transaction_id_hex)
+        node.current_block.lock.release()
+        # realsender = int(transaction.reals)
+        # realreceiver = int(transaction.realr)
+        # node.current_NBCs[realsender][0] = node.current_NBCs[realsender][0] - transaction.amount
+        # node.current_NBCs[realsender][1].append(transaction.transaction_id_hex)
+        # node.current_NBCs[realreceiver][0] = node.current_NBCs[realreceiver][0] + transaction.amount
+        # node.current_NBCs[realreceiver][1].append(transaction.transaction_id_hex)
 
         return "Transaction Validated by Node {} !".format(node.id), 200
     else:
@@ -275,7 +278,10 @@ if __name__ == '__main__':
     inputs = []
     inputs.append(first_transaction.transaction_id_hex)
     node.NBCs.append([first_transaction.amount, inputs])
+    node.current_NBCs.append([first_transaction.amount, inputs])
     for i in range(1,N):
         node.NBCs.append([0,[]])
-    node.current_NBCs = node.NBCs
+    for i in range(1,N):
+        node.current_NBCs.append([0,[]])
+    # node.current_NBCs = node.NBCs
     app.run(host='127.0.0.1', port=port, debug=True, use_reloader=False)

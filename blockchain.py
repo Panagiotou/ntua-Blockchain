@@ -3,10 +3,10 @@ class Blockchain:
         self.chain = []
 
     def add_block_to_chain(self, block):
-        print("Block added to blockchain!")
-        block.printMe()
-        print("Chain at the moment is")
-        if(self.chain): self.printMe()
+        # print("Block added to blockchain!")
+        # block.printMe()
+        # print("Chain at the moment is")
+        # if(self.chain): self.printMe()
         self.chain.append(block)
     def printMe(self):
         print()

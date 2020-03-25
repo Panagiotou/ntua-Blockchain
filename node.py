@@ -113,10 +113,11 @@ class Node:
             transactionjson = jsonpickle.encode(transaction)
             baseurl = 'http://{}:{}/'.format(self.myip, self.myport)
             res = requests.post(baseurl + "ValidateTransaction", json = {'transaction':transactionjson})
-        self.all_lock.acquire()
+
+        # self.all_lock.acquire()
         # print("Created transaction")
         # transaction.printMe()
-        self.all_lock.release()
+        # self.all_lock.release()
         start_new_thread(self.broadcast_transaction, (transaction, ))
             # self.broadcast_transaction(transaction, baseurl)
         return transaction
@@ -147,7 +148,7 @@ class Node:
         pubkey=sender_address
         verified = PKCS1_v1_5.new(pubkey).verify(h, signature)
         if (not(verified)):
-            print("Result False")
+            print("Result False verif")
             v_lock.release()
             return False
 
@@ -155,68 +156,55 @@ class Node:
         for trans_iter in self.completed_transactions:
             if(transaction.transaction_id_hex == trans_iter.transaction_id_hex):
             ##duplicate transaction
+                print("Result False dupl")
                 v_lock.release()
                 return False
 
+        # realsender = transaction.reals
+        realsender = int(transaction.reals)
+        realreceiver = int(transaction.realr)
 
-        realsender = transaction.reals
+        # print(transaction.amount, self.current_NBCs[int(realsender)][0])
         if(verified and transaction.amount<=self.current_NBCs[int(realsender)][0]):
         #if(verified):
+            self.current_NBCs[realsender][0] = self.current_NBCs[realsender][0] - transaction.amount
+            self.current_NBCs[realsender][1].append(transaction.transaction_id_hex)
+            self.current_NBCs[realreceiver][0] = self.current_NBCs[realreceiver][0] + transaction.amount
+            self.current_NBCs[realreceiver][1].append(transaction.transaction_id_hex)
             v_lock.release()
             return True
 
         else:
-            print("Result False")
+            print("Result False end")
             v_lock.release()
             return False
 
 
     def add_transaction_to_block(self, transaction, block, prev_block):
 
-        if(prev_block):
-            # print("NOT NULL")
-            self.all_lock.acquire()
-            if(prev_block.isInBlock(transaction.transaction_id_hex)):
-                # print("Transaction was already in prev_block", transaction.transaction_id_hex)
-                # transaction.printMe()
-                self.all_lock.release()
-                return 0
-            else:
-                self.all_lock.release()
-
-
-        if(self.chain):
-            self.all_lock.acquire()
-            if(self.chain.isInChain(transaction.transaction_id_hex) or block.isInBlock(transaction.transaction_id_hex)):
-                # print("Transaction was already in chain or in block", transaction.transaction_id_hex)
-                # transaction.printMe()
-                self.all_lock.release()
-                return 0
-            else:
-                self.all_lock.release()
-        self.all_lock.acquire()
-        # transaction.printMe()
-        capacity = block.capacity
-        while(len(block.listOfTransactions) == capacity):
-            # print("OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
-            # self.all_lock.release()
-            mined_block = self.mine_block(block)
-            self.previous_block = block
-            self.current_block = self.create_new_block(block.index + 1, block.currentHash_hex, None, time.time(), block.difficulty, block.capacity)
-            self.all_lock.release()
-            return
+        print("before add", len(block.listOfTransactions))
+        # block.lock.acquire()
         block.add_transaction(transaction)
-        print(len(block.listOfTransactions), capacity)
-        if(len(block.listOfTransactions) < capacity):
-            self.all_lock.release()
-        if(len(block.listOfTransactions) == capacity):
+        print("after add", len(block.listOfTransactions))
+        print(len(block.listOfTransactions), block.capacity)
+        if(len(block.listOfTransactions) == block.capacity):
             # print("AAAA")
+            # block.lock.release()
+            print("after if", len(block.listOfTransactions))
             # self.all_lock.release()
-            mined_block = self.mine_block(block)
+            mined_block = start_new_thread(self.mine_block,(block,))
+
             self.previous_block = block
             self.current_block = self.create_new_block(block.index + 1, block.currentHash_hex, None, time.time(), block.difficulty, block.capacity)
-            self.all_lock.release()
+            self.current_block.lock.acquire()
+            print("after new block", len(block.listOfTransactions))
 
+
+
+            # self.all_lock.release()
+        else:
+            pass
+            # block.lock.release()
         return 1
 
     def mine_block(self, block):
@@ -227,11 +215,11 @@ class Node:
             # print(block.myHash(block.nonce).hexdigest())
 
         # print("Validate own block")
-        self.all_lock.release()
+        # self.all_lock.release()
         baseurl = 'http://{}:{}/'.format(self.myip, self.myport)
         blockjson = jsonpickle.encode(block)
         res = requests.post(baseurl + "AddBlock", json = {'block':blockjson})
-        self.all_lock.acquire()
+        # self.all_lock.acquire()
         # print("Done")
 
         start_new_thread(self.broadcast_block,(block,))
@@ -283,6 +271,7 @@ class Node:
             previous_block = jsonpickle.decode(res["previous_block"])
             current_NBCs = res["current_NBCs"]
             NBCs = res["NBCs"]
+            self.all_lock.acquire()
             if(len(somechain.chain) > maxlen):
                 k = 1
                 self.chain = somechain
@@ -292,3 +281,5 @@ class Node:
                 self.NBCs = NBCs
                 maxlen = len(somechain.chain)
                 print("chain changed")
+            self.all_lock.release()
+        return

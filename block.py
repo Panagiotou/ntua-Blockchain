@@ -4,7 +4,8 @@ import Crypto.Random
 from Crypto.Hash import SHA
 from Crypto.PublicKey import RSA
 from Crypto.Signature import PKCS1_v1_5
-
+from _thread import *
+import threading
 
 
 class Block:
@@ -23,6 +24,8 @@ class Block:
 		# 	self.currentHash_hex = self.currentHash.hexdigest()
 		self.difficulty = difficulty
 		self.capacity = capacity
+		self.lock = threading.Lock()
+
 	def __eq__(self, other):
 		"""Overrides the default implementation"""
 		ret = (self.index == other.index and self.previousHash == other.previousHash and self.timestamp == other.timestamp)
