@@ -132,7 +132,9 @@ def AddBlock():
                 realreceiver = outputs[0][2]
                 realsender = outputs[1][2]
                 amount = outputs[0][3]
-
+                t.printMe()
+                print("Before=", node.NBCs)
+                node.chain.printMe()
                 node.NBCs[realreceiver][0] = node.NBCs[realreceiver][0] + amount
                 node.NBCs[realreceiver][1].append(id)
                 node.NBCs[realsender][0] = node.NBCs[realsender][0] - amount
