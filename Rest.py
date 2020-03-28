@@ -20,6 +20,8 @@ from Crypto.PublicKey import RSA
 from copy import deepcopy
 from Crypto.Signature import PKCS1_v1_5
 PRINTCHAIN = False
+CLIENT = 1                                  # read transactions from noobcash client
+# CLIENT = 0                                # read transactions from txt
 
 
 app = Flask(__name__)
@@ -35,19 +37,53 @@ def makejsonSendableRSA(jsonSendable):
     return RSA.importKey(jsonSendable.encode('ascii'))
 
 def read_transaction():
-    time.sleep(2)
-    print("Reading input transactions")
-    f = open("5nodes_small/transactions" + str(node.id) + ".txt", "r")
-    print(node.ring)
-    for line in f:
-        id, amount = (line).split()
-        for n in node.ring:
-            if int(n['id']) == int(id[-1]):
-                # time.sleep(1)
-                # print("LINE", line)
-                start_new_thread(node.create_transaction, (node.wallet.address, node.wallet.private_key, n['public_key'], int(amount),))
-                # node.create_transaction(node.wallet.address, node.wallet.private_key, n['public_key'], int(amount))
-                break
+    if (CLIENT):
+        print("******** Welcome to Noobcash Client . . . ********")
+        while(True):
+            input1 = input()
+            if input1 == "view":
+                node.chain.view()
+            elif input1 == "balance":
+                print("Wallet UTXO's: ", node.NBCs[node.id][0])
+            elif input1 == "help":
+                print("t <recipient_address> <amount>   New transaction: Sends to recipient_address wallet, amount NBC coins from wallet sender_address.")
+                #Θα καλεί συνάρτηση create_transaction στο backend που θα υλοποιεί την παραπάνω λειτουργία.
+                print("view                             View last transactions: Displays the transactions contained in the last validated block.")
+                #Καλεί τη συνάρτηση view_transactions() στο backend που υλοποιεί την παραπάνω λειτουργία
+                print("balance                          Show balance: Displays wallet UTXOs.")
+            else:
+                message = "'" + input1 + "'"
+                a = input1.split()
+                try:
+                    int(a[2])
+                    if(a[0] == 't'):
+                        flag = 0
+                        for r in node.ring:
+                            if (r['ip'] == a[1]):
+                                flag = 1
+                                pk = r['public_key']
+                                node.create_transaction(node.wallet.address, node.wallet.private_key, pk, int(a[2]))
+                                break
+                        if(flag == 0):
+                            print("<recipient_address> invalid")
+                    else:
+                        print (message, "is not recognized as a command. Please type 'help' to see all the valid commands")
+                except:
+                    print (message, "except is not recognized as a command. Please type 'help' to see all the valid commands")
+    else:
+        time.sleep(2)
+        print("Reading input transactions from txt")
+        f = open("5nodes_small/transactions" + str(node.id) + ".txt", "r")
+        print(node.ring)
+        for line in f:
+            id, amount = (line).split()
+            for n in node.ring:
+                if int(n['id']) == int(id[-1]):
+                    # time.sleep(1)
+                    # print("LINE", line)
+                    # start_new_thread(node.create_transaction, (node.wallet.address, node.wallet.private_key, n['public_key'], int(amount),))
+                    node.create_transaction(node.wallet.address, node.wallet.private_key, n['public_key'], int(amount))
+                    break
 
 # get all transactions in the blockchain
 
@@ -74,7 +110,8 @@ def UpdateRing():
         print(r1)
         node.ring.append(r1)
     # print("My ring was updated by bootstrap Node!")
-    read_transaction()
+    # read_transaction()
+    start_new_thread(read_transaction, ())
     return "Ring Updated for node {}".format(node.id), 200
 
 @app.route('/AddBlock', methods=['POST'])
