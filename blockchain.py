@@ -2,6 +2,15 @@ class Blockchain:
     def __init__(self):
         self.chain = []
 
+    def view(self):
+        if(self.chain):
+            block = self.chain[-1]
+            print("Transactions contained in the last validated block:")
+            for t in block.listOfTransactions:
+                t.printMe()
+        else:
+            print("Chain Empty")
+
     def add_block_to_chain(self, block):
         # print("Block added to blockchain!")
         # block.printMe()
