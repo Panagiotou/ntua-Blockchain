@@ -15,7 +15,6 @@ import threading
 DEBUG = True
 PRINTCHAIN = False
 
-v_lock = threading.Lock()
 
 def makeRSAjsonSendable(rsa):
     return rsa.exportKey("PEM").decode('ascii')
@@ -114,10 +113,6 @@ class Node:
             baseurl = 'http://{}:{}/'.format(self.myip, self.myport)
             res = requests.post(baseurl + "ValidateTransaction", json = {'transaction':transactionjson})
 
-        # self.all_lock.acquire()
-        # print("Created transaction")
-        # transaction.printMe()
-        # self.all_lock.release()
         for r in self.ring:
             start_new_thread(self.broadcast_transaction, (transaction,r, ))
             # self.broadcast_transaction(transaction, baseurl)
@@ -135,12 +130,6 @@ class Node:
 
 
     def validate_transaction(self, transaction):
-        # print("i am node {} validating transaction:".format(self.id))
-        # transaction.printMe()
-        v_lock.acquire()
-        # print("Validating Transaction")
-        # transaction.printMe()
-
         sender_address=transaction.sender_address
         ##use temp until h is passed humanly
         h= SHA.new(transaction.transaction_myid.encode())
@@ -148,17 +137,13 @@ class Node:
         pubkey=sender_address
         verified = PKCS1_v1_5.new(pubkey).verify(h, signature)
         if (not(verified)):
-            print("Result False verif")
-            v_lock.release()
             return False
 
         #Check duplicate
-        for trans_iter in self.completed_transactions:
-            if(transaction.transaction_id_hex == trans_iter.transaction_id_hex):
-            ##duplicate transaction
-                print("Result False dupl")
-                v_lock.release()
-                return False
+        # for trans_iter in self.completed_transactions:
+        #     if(transaction.transaction_id_hex == trans_iter.transaction_id_hex):
+        #     ##duplicate transaction
+        #         return False
 
         # realsender = transaction.reals
         realsender = int(transaction.reals)
@@ -171,23 +156,61 @@ class Node:
             self.current_NBCs[realsender][1].append(transaction.transaction_id_hex)
             self.current_NBCs[realreceiver][0] = self.current_NBCs[realreceiver][0] + transaction.amount
             self.current_NBCs[realreceiver][1].append(transaction.transaction_id_hex)
-            v_lock.release()
             return True
 
         else:
-            print("Result False end")
-            v_lock.release()
             return False
 
 
     def add_transaction_to_block(self, transaction):
         self.all_lock.acquire()
+        for b in self.chain.chain:
+            for trans_iter in b.listOfTransactions:
+                if(transaction.transaction_id_hex == trans_iter.transaction_id_hex):
+                    try:
+                        self.all_lock.release()
+                    except:
+                        pass
+                    return False
+
+        for trans_iter in self.completed_transactions:
+            if(transaction.transaction_id_hex == trans_iter.transaction_id_hex):
+                try:
+                    self.all_lock.release()
+                except:
+                    pass
+                return False
+        transaction.printMe()
+        print("previous block")
+        self.chain.chain[-1].printMe()
+        for trans_iter in self.current_block.listOfTransactions:
+            if(transaction.transaction_id_hex == trans_iter.transaction_id_hex):
+                try:
+                    self.all_lock.release()
+                except:
+                    pass
+                return False
         self.current_block.add_transaction(transaction)
         print(len(self.current_block.listOfTransactions), self.current_block.capacity)
-
+        if(len(self.current_block.listOfTransactions) > self.current_block.capacity):
+            print("ERROR-----------")
+            self.current_block.printMe()
         if(len(self.current_block.listOfTransactions) == self.current_block.capacity):
             # mined_block = start_new_thread(self.mine_block,())
+            print("I have to mine")
+            try:
+                self.all_lock.release()
+            except:
+                pass
+            finally:
+                self.all_lock.acquire()
             mined_block = self.mine_block()
+            # node.previous_block = mined_block
+            self.current_block = self.create_new_block(self.current_block.index + 1, self.current_block.currentHash_hex, 0, time.time(), self.current_block.difficulty, self.current_block.capacity)
+            try:
+                self.all_lock.release()
+            except:
+                pass
         else:
             try:
                 self.all_lock.release()
@@ -196,33 +219,27 @@ class Node:
         return 1
 
     def mine_block(self):
-        # print("Node {} is mining block {}".format(self.id, block.index))
+        print("Mining block")
+        self.current_block.printMe()
         self.current_block.nonce = 0
         while ( not (self.current_block.myHash(self.current_block.nonce).hexdigest().startswith('0'* self.current_block.difficulty))):
             self.current_block.nonce += 1
-            # print(block.myHash(block.nonce).hexdigest())
+        print("Done")
 
-        # print("Validate own block")
-        # self.all_lock.release()
         baseurl = 'http://{}:{}/'.format(self.myip, self.myport)
         blockjson = jsonpickle.encode(self.current_block)
         res = requests.post(baseurl + "AddBlock", json = {'block':blockjson})
-        # self.all_lock.acquire()
-        # print("Done")
 
         for r in self.ring:
             start_new_thread(self.broadcast_block,(self.current_block,r))
         return self.current_block
 
-    # def valid_proof(.., difficulty=MINING_DIFFICULTY):
     def broadcast_block(self, block, r):
         baseurl = 'http://{}:{}/'.format(r['ip'],r['port'])
 
         blockjson = jsonpickle.encode(block)
-        # print("I am node with id {} and I am broadcasting block ({}) to {}".format(self.id, block.timestamp, baseurl))
         res = requests.post(baseurl + "AddBlock", json = {'block':blockjson})
-        # print(res.text)
-    # def valid_proof(.., difficulty=MINING_DIFFICULTY):
+
 
 
 
@@ -230,8 +247,6 @@ class Node:
     #concencus functions
 
     def validate_block(self, block):
-        # print("I am node with id {} and I am Validating block ({})".format(self.id, block.timestamp))
-        # print("The nonce is {} for block {}".format(block.nonce, block.index))
         curr_hash = SHA.new((str(block.index)+str(block.previousHash_hex)+str(block.nonce)).encode())
         if (curr_hash.hexdigest().startswith('0'* block.difficulty) and block.previousHash_hex == self.chain.chain[-1].currentHash_hex):
             return True
@@ -241,34 +256,63 @@ class Node:
 
 
     def validate_chain(self, blockchain):
-    	# print("Validating blockchain...")
     	for block in blockchain.chain:
     		if(block.index > 0):
-    			# Block is not genesis
     			self.validate_block(block)
-    	# print("Blockchain Validated.")
 
     def resolve_conflicts(self):
-        maxlen = len(self.chain.chain)
-        k = 0
+
+        somechain = []
+        current_NBCs = []
+        NBCs = []
         for r in self.ring:
             baseurl = 'http://{}:{}/'.format(r['ip'],r['port'])
             res = requests.get(baseurl + "Chain").json()
-            somechain = jsonpickle.decode(res["chain"])
-            current_block = jsonpickle.decode(res["current_block"])
-            previous_block = jsonpickle.decode(res["previous_block"])
-            current_NBCs = res["current_NBCs"]
-            NBCs = res["NBCs"]
+            somechain.append(jsonpickle.decode(res["chain"]))
+            # current_block = jsonpickle.decode(res["current_block"])
+            # previous_block = jsonpickle.decode(res["previous_block"])
+            current_NBCs.append(res["current_NBCs"])
+            NBCs.append(res["NBCs"])
 
-            # self.all_lock.acquire()
-            if(len(somechain.chain) > maxlen):
-                k = 1
-                self.chain = somechain
-                # self.current_block = self.create_new_block(current_block.index + 1, current_block.currentHash_hex, 0, time.time(), current_block.difficulty, current_block.capacity)
-                # self.previous_block = previous_block
-                self.current_NBCs = current_NBCs
-                self.NBCs = NBCs
-                maxlen = len(somechain.chain)
-                print("chain changed")
-            # self.all_lock.release()
+        # self.all_lock.acquire()
+        maxlen = len(somechain[0].chain)
+        for i in range(len(somechain)):
+            if(len(somechain[i].chain) > maxlen):
+                maxlen = len(somechain[i].chain)
+
+        k = 0
+        changed = 0
+
+        for i in range(len(somechain)):
+            if(len(somechain[i].chain) == maxlen):
+                k = i
+                changed = 1
+                break
+
+        print(k, changed, maxlen, len(self.chain.chain), id)
+        if(maxlen == len(self.chain.chain) and self.id < k):
+            print("keep my chain of length", len(self.chain.chain))
+            for i in range(len(somechain)):
+                print("\t node {} , len {}".format(self.ring[i]['id'] , len(somechain[i].chain)))
+            return
+
+        if(changed):
+            print("chain changed for node {} my chain length was {}".format(self.id, len(self.chain.chain)))
+            print("Other chain lengths are:")
+            for i in range(len(somechain)):
+                print("\t node {} , len {}".format(self.ring[i]['id'] , len(somechain[i].chain)))
+            print(k, len(self.ring), len(somechain))
+            print("selected node {} , len {}".format(self.ring[k]['id'] , len(somechain[k].chain)))
+            self.chain = somechain[k]
+            # self.current_block = self.create_new_block(current_block.index + 1, current_block.currentHash_hex, 0, time.time(), current_block.difficulty, current_block.capacity)
+            # self.previous_block = previous_block
+            self.current_NBCs = current_NBCs[k]
+            self.NBCs = NBCs[k]
+            # print("new chane is")
+            # self.
+        # try:
+        #     self.all_lock.release()
+        # except:
+        #     pass
+
         return

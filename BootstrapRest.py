@@ -20,8 +20,8 @@ from Crypto.PublicKey import RSA
 from Crypto.Signature import PKCS1_v1_5
 from copy import deepcopy
 PRINTCHAIN = False
-CLIENT = 1                                  # read transactions from noobcash client
-# CLIENT = 0                                # read transactions from txt
+# CLIENT = 1                                  # read transactions from noobcash client
+CLIENT = 0                                # read transactions from txt
 
 
 
@@ -62,7 +62,7 @@ def read_transaction():
                 except:
                     print (message, "except is not recognized as a command. Please type 'help' to see all the valid commands")
     else:
-        time.sleep(2)
+        # time.sleep(2)
         print("Reading input transactions from txt")
         f = open("5nodes_small/transactions" + str(node.id) + ".txt", "r")
         print(node.ring)
@@ -146,20 +146,12 @@ def AddBlock():
     block = jsonpickle.decode(data["block"])
     if(block.index > 0):
         valid = node.validate_block(block)
-        print("validating block")
-        block.printMe()
-        print("result", valid)
-
-        print("chain at the moment")
-        if(node.chain.chain):
-            node.chain.printMe()
 
         if(valid):
             node.chain.add_block_to_chain(block)
 
-            node.previous_block = block
-            node.current_block = node.create_new_block(block.index + 1, block.currentHash_hex, 0, time.time(), block.difficulty, block.capacity)
-            #node.NBCs = node.current_NBCs
+            # node.previous_block = block
+            # node.current_block = node.create_new_block(block.index + 1, block.currentHash_hex, 0, time.time(), block.difficulty, block.capacity)
             for t in block.listOfTransactions:
                 outputs = t.transaction_outputs
                 id = outputs[0][1]
@@ -172,17 +164,10 @@ def AddBlock():
 
             for tran_iter in block.listOfTransactions:
                 node.completed_transactions.append(tran_iter)
-
-            #TODO run actual transactions
-            # node.all_lock.release()
         else:
+
             # start_new_thread(node.resolve_conflicts,())
             node.resolve_conflicts()
-            # node.all_lock.release()
-    try:
-        node.all_lock.release()
-    except:
-        pass
     return "OK", 200
 
 @app.route('/ValidateTransaction', methods=['POST'])
@@ -200,12 +185,7 @@ def ValidateTransaction():
     transaction = jsonpickle.decode(data["transaction"])
     valid = node.validate_transaction(transaction)
     if(valid):
-        # node.current_block.lock.acquire()
-        # node.all_lock.acquire()
         node.add_transaction_to_block(transaction)
-        # node.all_lock.release()
-
-        # node.current_block.lock.release()
 
         return "Transaction Validated by Node {} !".format(node.id), 200
     else:
@@ -264,9 +244,9 @@ def PrintWallet():
 
 if __name__ == '__main__':
     from argparse import ArgumentParser
-    BLOCK_CAPACITY = 2
+    BLOCK_CAPACITY = 5
     MINING_DIFFICULTY = 4
-    N = 3  #Number of nodes i  the system
+    N = 5  #Number of nodes i  the system
 
     blockchain = Blockchain()
 
@@ -299,7 +279,7 @@ if __name__ == '__main__':
     # first transaction
     amount = 100*N
     first_transaction = node.create_transaction(0, None, bootstrap_public_key, amount)
-    node.add_transaction_to_block(first_transaction)
+    genesis_block.add_transaction(first_transaction)
     blockchain.add_block_to_chain(genesis_block)
     node.chain = blockchain
     if(PRINTCHAIN): node.chain.printMe()

@@ -20,8 +20,8 @@ from Crypto.PublicKey import RSA
 from copy import deepcopy
 from Crypto.Signature import PKCS1_v1_5
 PRINTCHAIN = False
-CLIENT = 1                                  # read transactions from noobcash client
-# CLIENT = 0                                # read transactions from txt
+# CLIENT = 1                                  # read transactions from noobcash client
+CLIENT = 0                                # read transactions from txt
 
 
 app = Flask(__name__)
@@ -71,7 +71,7 @@ def read_transaction():
                 except:
                     print (message, "except is not recognized as a command. Please type 'help' to see all the valid commands")
     else:
-        time.sleep(2)
+        # time.sleep(2)
         print("Reading input transactions from txt")
         f = open("5nodes_small/transactions" + str(node.id) + ".txt", "r")
         print(node.ring)
@@ -111,6 +111,8 @@ def UpdateRing():
         node.ring.append(r1)
     # print("My ring was updated by bootstrap Node!")
     # read_transaction()
+    while(not(node.current_NBCs[-1][0] == 100 or node.NBCs[-1][0] == 100)):
+        pass
     start_new_thread(read_transaction, ())
     return "Ring Updated for node {}".format(node.id), 200
 
@@ -125,20 +127,12 @@ def AddBlock():
     block = jsonpickle.decode(data["block"])
     if(block.index > 0):
         valid = node.validate_block(block)
-        print("validating block")
-        block.printMe()
-        print("result", valid)
-
-        print("chain at the moment")
-        if(node.chain.chain):
-            node.chain.printMe()
 
         if(valid):
             node.chain.add_block_to_chain(block)
 
-            node.previous_block = block
-            node.current_block = node.create_new_block(block.index + 1, block.currentHash_hex, 0, time.time(), block.difficulty, block.capacity)
-            #node.NBCs = node.current_NBCs
+            # node.previous_block = block
+            # node.current_block = node.create_new_block(block.index + 1, block.currentHash_hex, 0, time.time(), block.difficulty, block.capacity)
             for t in block.listOfTransactions:
                 outputs = t.transaction_outputs
                 id = outputs[0][1]
@@ -151,17 +145,9 @@ def AddBlock():
 
             for tran_iter in block.listOfTransactions:
                 node.completed_transactions.append(tran_iter)
-
-            #TODO run actual transactions
-            # node.all_lock.release()
         else:
-            node.resolve_conflicts()
             # start_new_thread(node.resolve_conflicts,())
-            # node.all_lock.release()
-    try:
-        node.all_lock.release()
-    except:
-        pass
+            node.resolve_conflicts()
     return "OK", 200
 
 
@@ -178,14 +164,10 @@ def ValidateTransaction():
         return "Error: Please supply a valid Transaction", 400
 
     transaction = jsonpickle.decode(data["transaction"])
+    # node.all_lock.acquire()
     valid = node.validate_transaction(transaction)
     if(valid):
-        # node.current_block.lock.acquire()
-        # node.all_lock.acquire()
         node.add_transaction_to_block(transaction)
-        # node.all_lock.release()
-
-        # node.current_block.lock.release()
 
         return "Transaction Validated by Node {} !".format(node.id), 200
     else:
