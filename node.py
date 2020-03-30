@@ -275,6 +275,7 @@ class Node:
     def resolve_conflicts(self):
 
         somechain = []
+        node_id = []
         current_NBCs = []
         NBCs = []
         vt = []
@@ -282,6 +283,7 @@ class Node:
             baseurl = 'http://{}:{}/'.format(r['ip'],r['port'])
             res = requests.get(baseurl + "Chain").json()
             somechain.append(jsonpickle.decode(res["chain"]))
+            node_id.append(res["id"])
             # current_block = jsonpickle.decode(res["current_block"])
             # previous_block = jsonpickle.decode(res["previous_block"])
             current_NBCs.append(res["current_NBCs"])
@@ -302,8 +304,8 @@ class Node:
                 changed = 1
                 break
 
-        print(k, changed, maxlen, len(self.chain.chain), id)
-        if(maxlen == len(self.chain.chain) and self.id < k):
+        print(k, changed, maxlen, len(self.chain.chain), self.id, node_id[k])
+        if( (maxlen == len(self.chain.chain) and self.id < node_id[k]) or (len(self.chain.chain) > maxlen)):
             print("keep my chain of length", len(self.chain.chain))
             for i in range(len(somechain)):
                 print("\t node {} , len {}".format(self.ring[i]['id'] , len(somechain[i].chain)))
@@ -322,8 +324,9 @@ class Node:
             self.current_NBCs = current_NBCs[k]
             self.NBCs = NBCs[k]
             self.validated_transactions = vt[k]
-            # print("new chane is")
-            # self.
+
+        print("new chain is")
+        self.chain.printMe()
         # try:
         #     self.all_lock.release()
         # except:
