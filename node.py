@@ -38,6 +38,7 @@ class Node:
         self.myip = None
         self.myport = None
         self.completed_transactions = []
+        self.validated_transactions = []
         self.all_lock = threading.Lock()
 
     def create_new_block(self, index, previousHash_hex, nonce, timestamp, difficulty, capacity):
@@ -180,6 +181,15 @@ class Node:
                 except:
                     pass
                 return False
+
+        for trans_iter in self.validated_transactions:
+            if(transaction.transaction_id_hex == trans_iter.transaction_id_hex):
+                try:
+                    self.all_lock.release()
+                except:
+                    pass
+                return False
+
         transaction.printMe()
         print("previous block")
         self.chain.chain[-1].printMe()
@@ -191,6 +201,8 @@ class Node:
                     pass
                 return False
         self.current_block.add_transaction(transaction)
+        self.validated_transactions.append(transaction)
+
         print(len(self.current_block.listOfTransactions), self.current_block.capacity)
         if(len(self.current_block.listOfTransactions) > self.current_block.capacity):
             print("ERROR-----------")
@@ -265,6 +277,7 @@ class Node:
         somechain = []
         current_NBCs = []
         NBCs = []
+        vt = []
         for r in self.ring:
             baseurl = 'http://{}:{}/'.format(r['ip'],r['port'])
             res = requests.get(baseurl + "Chain").json()
@@ -273,7 +286,7 @@ class Node:
             # previous_block = jsonpickle.decode(res["previous_block"])
             current_NBCs.append(res["current_NBCs"])
             NBCs.append(res["NBCs"])
-
+            vt.append(jsonpickle.decode(res["VT"]))
         # self.all_lock.acquire()
         maxlen = len(somechain[0].chain)
         for i in range(len(somechain)):
@@ -308,6 +321,7 @@ class Node:
             # self.previous_block = previous_block
             self.current_NBCs = current_NBCs[k]
             self.NBCs = NBCs[k]
+            self.validated_transactions = vt[k]
             # print("new chane is")
             # self.
         # try:

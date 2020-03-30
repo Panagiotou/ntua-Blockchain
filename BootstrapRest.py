@@ -19,6 +19,8 @@ from Crypto.Hash import SHA
 from Crypto.PublicKey import RSA
 from Crypto.Signature import PKCS1_v1_5
 from copy import deepcopy
+import os
+
 PRINTCHAIN = False
 # CLIENT = 1                                  # read transactions from noobcash client
 CLIENT = 0                                # read transactions from txt
@@ -64,7 +66,7 @@ def read_transaction():
     else:
         # time.sleep(2)
         print("Reading input transactions from txt")
-        f = open("5nodes_small/transactions" + str(node.id) + ".txt", "r")
+        f = open("5nodes/transactions" + str(node.id) + ".txt", "r")
         print(node.ring)
         for line in f:
             id, amount = (line).split()
@@ -227,8 +229,7 @@ def register_nodes():
 
 @app.route('/Chain', methods=['GET'])
 def Chain():
-    return {'chain': jsonpickle.encode(node.chain), 'previous_block': jsonpickle.encode(node.previous_block), 'current_block': jsonpickle.encode(node.current_block), 'current_NBCs': node.current_NBCs, 'NBCs': node.NBCs}
-
+    return {'chain': jsonpickle.encode(node.chain), 'previous_block': jsonpickle.encode(node.previous_block), 'current_block': jsonpickle.encode(node.current_block), 'current_NBCs': node.current_NBCs, 'NBCs': node.NBCs , 'VT': jsonpickle.encode(node.validated_transactions)}
 
 @app.route('/PrintChain', methods=['GET'])
 def PrintChain():
@@ -241,6 +242,43 @@ def PrintWallet():
     for nbc in node.NBCs:
         print("\t", nbc[0])
     return "OK", 200
+
+@app.route('/SaveStats', methods=['GET'])
+def SaveStats():
+    dir = str(N) + "nodes" + "_stats/"
+    os.system("mkdir " + dir)
+    trans = [open(dir + "transactions" + str(x) + ".txt", "w") for x in range(N)]
+    for b in node.chain.chain:
+        for t in b.listOfTransactions:
+            sender = str(t.reals)
+            receiver = str(t.realr)
+            if not sender == "genesis":
+                line = "id{} {} {} {}\n".format(receiver, t.amount, t.timeCreated, t.timeAdded)
+                trans[int(sender)].write(line)
+    blocks = open(dir + "blocks.txt", "w")
+    for b in node.chain.chain:
+        line = "{} {} {}\n".format(b.index, b.timeCreated, b.timeAdded)
+        blocks.write(line)
+    return "OK", 200
+
+@app.route('/ComputeResults', methods=['GET'])
+def ComputeResults():
+    dir = str(N) + "nodes" + "_stats/"
+    trans = [open(dir + "transactions" + str(x) + ".txt", "r") for x in range(N)]
+    times = []
+    for i in range(N):
+        for line in trans[i]:
+            id, amount, start, stop  = line.split()
+            times.append(float(stop)-float(start))
+    ret = "Mean Transaction Throughput = {} seconds\n".format(sum(times)/len(times))
+    blocks = open(dir + "blocks.txt", "r")
+    blocktimes = []
+    for line in blocks:
+        id, start, stop  = line.split()
+        blocktimes.append(float(stop)-float(start))
+    ret += "Mean Blocks Time = {} seconds\n".format(sum(blocktimes)/len(blocktimes))
+
+    return ret, 200
 
 if __name__ == '__main__':
     from argparse import ArgumentParser

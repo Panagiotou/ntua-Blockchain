@@ -73,7 +73,7 @@ def read_transaction():
     else:
         # time.sleep(2)
         print("Reading input transactions from txt")
-        f = open("5nodes_small/transactions" + str(node.id) + ".txt", "r")
+        f = open("5nodes/transactions" + str(node.id) + ".txt", "r")
         print(node.ring)
         for line in f:
             id, amount = (line).split()
@@ -210,7 +210,7 @@ def ContactBootstrapNode(baseurl, host, port):
     # print("Now I can create transactions!")
 @app.route('/Chain', methods=['GET'])
 def Chain():
-    return {'chain': jsonpickle.encode(node.chain), 'previous_block': jsonpickle.encode(node.previous_block), 'current_block': jsonpickle.encode(node.current_block), 'current_NBCs': node.current_NBCs, 'NBCs': node.NBCs}
+    return {'chain': jsonpickle.encode(node.chain), 'previous_block': jsonpickle.encode(node.previous_block), 'current_block': jsonpickle.encode(node.current_block), 'current_NBCs': node.current_NBCs, 'NBCs': node.NBCs , 'VT': jsonpickle.encode(node.validated_transactions)}
 
 @app.route('/PrintChain', methods=['GET'])
 def PrintChain():

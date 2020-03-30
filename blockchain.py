@@ -1,3 +1,4 @@
+import time
 class Blockchain:
     def __init__(self):
         self.chain = []
@@ -16,6 +17,9 @@ class Blockchain:
         # block.printMe()
         # print("Chain at the moment is")
         # if(self.chain): self.printMe()
+        block.timeAdded = time.time()
+        for t in block.listOfTransactions:
+            t.timeAdded = time.time()
         self.chain.append(block)
     def printMe(self):
         print()

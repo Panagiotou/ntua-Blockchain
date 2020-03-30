@@ -6,7 +6,7 @@ from Crypto.PublicKey import RSA
 from Crypto.Signature import PKCS1_v1_5
 from _thread import *
 import threading
-
+import time
 
 class Block:
 	def __init__(self, index, previousHash_hex, nonce, timestamp, difficulty, capacity):
@@ -19,6 +19,8 @@ class Block:
 		self.currentHash = SHA.new((str(self.index)+str(self.previousHash_hex)+str(self.nonce)).encode())
 		self.currentHash_hex = self.currentHash.hexdigest()
 		self.listOfTransactions = []
+		self.timeCreated = time.time()
+		self.timeAdded = None
 		# if(not type(previousHash) == type(0)):
 		# 	self.previousHash_hex = previousHash.hexdigest()
 		# 	self.currentHash_hex = self.currentHash.hexdigest()
