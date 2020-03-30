@@ -22,8 +22,8 @@ from copy import deepcopy
 import os
 
 PRINTCHAIN = False
-# CLIENT = 1                                  # read transactions from noobcash client
-CLIENT = 0                                # read transactions from txt
+# CLIENT = 1                                    # read transactions from noobcash client
+CLIENT = 0                                      # read transactions from txt
 
 
 
@@ -66,7 +66,7 @@ def read_transaction():
     else:
         # time.sleep(2)
         print("Reading input transactions from txt")
-        f = open("5nodes/transactions" + str(node.id) + ".txt", "r")
+        f = open("3nodes_small/transactions" + str(node.id) + ".txt", "r")
         print(node.ring)
         for line in f:
             id, amount = (line).split()
@@ -229,7 +229,7 @@ def register_nodes():
 
 @app.route('/Chain', methods=['GET'])
 def Chain():
-    return {'chain': jsonpickle.encode(node.chain), 'previous_block': jsonpickle.encode(node.previous_block), 'current_block': jsonpickle.encode(node.current_block), 'current_NBCs': node.current_NBCs, 'NBCs': node.NBCs , 'VT': jsonpickle.encode(node.validated_transactions)}
+    return {'chain': jsonpickle.encode(node.chain), 'id': node.id, 'previous_block': jsonpickle.encode(node.previous_block), 'current_block': jsonpickle.encode(node.current_block), 'current_NBCs': node.current_NBCs, 'NBCs': node.NBCs , 'VT': jsonpickle.encode(node.validated_transactions)}
 
 @app.route('/PrintChain', methods=['GET'])
 def PrintChain():
@@ -282,9 +282,9 @@ def ComputeResults():
 
 if __name__ == '__main__':
     from argparse import ArgumentParser
-    BLOCK_CAPACITY = 5
+    BLOCK_CAPACITY = 10
     MINING_DIFFICULTY = 4
-    N = 5  #Number of nodes i  the system
+    N = 3  #Number of nodes i  the system
 
     blockchain = Blockchain()
 
