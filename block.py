@@ -10,9 +10,7 @@ import time
 
 class Block:
 	def __init__(self, index, previousHash_hex, nonce, timestamp, difficulty, capacity):
-		##set
 		self.index = index
-		#self.previousHash = previousHash
 		self.previousHash_hex = previousHash_hex
 		self.nonce = nonce
 		self.timestamp = timestamp
@@ -21,9 +19,6 @@ class Block:
 		self.listOfTransactions = []
 		self.timeCreated = time.time()
 		self.timeAdded = None
-		# if(not type(previousHash) == type(0)):
-		# 	self.previousHash_hex = previousHash.hexdigest()
-		# 	self.currentHash_hex = self.currentHash.hexdigest()
 		self.difficulty = difficulty
 		self.capacity = capacity
 		self.lock = threading.Lock()
@@ -34,7 +29,6 @@ class Block:
 		return ret
 
 	def myHash(self, nonce):
-		# self.currentHash = SHA.new((str(self.index)+str(self.previousHash)+str(self.timestamp)+str(self.nonce)).encode())
 		return SHA.new((str(self.index)+str(self.previousHash_hex)+str(self.nonce)).encode())
 
 	def add_transaction(self, transaction):

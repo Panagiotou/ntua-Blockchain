@@ -30,7 +30,7 @@ class Node:
         self.NBCs = []
         self.current_NBCs = []
         self.wallet = None # created with create_wallet()
-        self.ring = []   #here we store information for every node, as its id, its address (ip:port) its public key and its balance
+        self.ring = []
         self.create_wallet()
         self.previous_block = None
         self.current_block = None
@@ -45,7 +45,6 @@ class Node:
     	return Block(index, previousHash_hex, nonce, timestamp, difficulty, capacity)
 
     def create_wallet(self):
-    	#create a wallet for this node, with a public key and a private key
     	self.wallet = Wallet()
 
     def create_transaction(self, sender, sender_private_key, receiver, amount):
@@ -116,23 +115,18 @@ class Node:
 
         for r in self.ring:
             start_new_thread(self.broadcast_transaction, (transaction,r, ))
-            # self.broadcast_transaction(transaction, baseurl)
         return transaction
 
 
     def broadcast_transaction(self, transaction, r):
         baseurl = 'http://{}:{}/'.format(r['ip'],r['port'])
         transactionjson = jsonpickle.encode(transaction)
-        # print("I am node with id {} and I am broadcasting the transaction ({}) to node {} with url {}".format(self.id, transaction.transaction_id_hex,  r['id'], baseurl))
-
         res = requests.post(baseurl + "ValidateTransaction", json = {'transaction':transactionjson})
 
-        # print(res.text)
 
 
     def validate_transaction(self, transaction):
         sender_address=transaction.sender_address
-        ##use temp until h is passed humanly
         h= SHA.new(transaction.transaction_myid.encode())
         signature=transaction.signature
         pubkey=sender_address
@@ -140,19 +134,10 @@ class Node:
         if (not(verified)):
             return False
 
-        #Check duplicate
-        # for trans_iter in self.completed_transactions:
-        #     if(transaction.transaction_id_hex == trans_iter.transaction_id_hex):
-        #     ##duplicate transaction
-        #         return False
-
-        # realsender = transaction.reals
         realsender = int(transaction.reals)
         realreceiver = int(transaction.realr)
 
-        # print(transaction.amount, self.current_NBCs[int(realsender)][0])
         if(verified and transaction.amount<=self.current_NBCs[int(realsender)][0]):
-        #if(verified):
             self.current_NBCs[realsender][0] = self.current_NBCs[realsender][0] - transaction.amount
             self.current_NBCs[realsender][1].append(transaction.transaction_id_hex)
             self.current_NBCs[realreceiver][0] = self.current_NBCs[realreceiver][0] + transaction.amount
@@ -190,9 +175,6 @@ class Node:
                     pass
                 return False
 
-        transaction.printMe()
-        print("previous block")
-        self.chain.chain[-1].printMe()
         for trans_iter in self.current_block.listOfTransactions:
             if(transaction.transaction_id_hex == trans_iter.transaction_id_hex):
                 try:
@@ -203,13 +185,8 @@ class Node:
         self.current_block.add_transaction(transaction)
         self.validated_transactions.append(transaction)
 
-        print(len(self.current_block.listOfTransactions), self.current_block.capacity)
-        if(len(self.current_block.listOfTransactions) > self.current_block.capacity):
-            print("ERROR-----------")
-            self.current_block.printMe()
+
         if(len(self.current_block.listOfTransactions) == self.current_block.capacity):
-            # mined_block = start_new_thread(self.mine_block,())
-            print("I have to mine")
             try:
                 self.all_lock.release()
             except:
@@ -217,7 +194,6 @@ class Node:
             finally:
                 self.all_lock.acquire()
             mined_block = self.mine_block()
-            # node.previous_block = mined_block
             self.current_block = self.create_new_block(self.current_block.index + 1, self.current_block.currentHash_hex, 0, time.time(), self.current_block.difficulty, self.current_block.capacity)
             try:
                 self.all_lock.release()
@@ -231,12 +207,11 @@ class Node:
         return 1
 
     def mine_block(self):
-        print("Mining block")
-        self.current_block.printMe()
         self.current_block.nonce = 0
         while ( not (self.current_block.myHash(self.current_block.nonce).hexdigest().startswith('0'* self.current_block.difficulty))):
             self.current_block.nonce += 1
-        print("Done")
+            if (self.current_block.index <= self.chain.chain[-1].index):
+                return
 
         baseurl = 'http://{}:{}/'.format(self.myip, self.myport)
         blockjson = jsonpickle.encode(self.current_block)
@@ -254,9 +229,6 @@ class Node:
 
 
 
-
-
-    #concencus functions
 
     def validate_block(self, block):
         curr_hash = SHA.new((str(block.index)+str(block.previousHash_hex)+str(block.nonce)).encode())
@@ -284,12 +256,9 @@ class Node:
             res = requests.get(baseurl + "Chain").json()
             somechain.append(jsonpickle.decode(res["chain"]))
             node_id.append(res["id"])
-            # current_block = jsonpickle.decode(res["current_block"])
-            # previous_block = jsonpickle.decode(res["previous_block"])
             current_NBCs.append(res["current_NBCs"])
             NBCs.append(res["NBCs"])
             vt.append(jsonpickle.decode(res["VT"]))
-        # self.all_lock.acquire()
         maxlen = len(somechain[0].chain)
         for i in range(len(somechain)):
             if(len(somechain[i].chain) > maxlen):
@@ -304,32 +273,12 @@ class Node:
                 changed = 1
                 break
 
-        print(k, changed, maxlen, len(self.chain.chain), self.id, node_id[k])
         if( (maxlen == len(self.chain.chain) and self.id < node_id[k]) or (len(self.chain.chain) > maxlen)):
-            print("keep my chain of length", len(self.chain.chain))
-            for i in range(len(somechain)):
-                print("\t node {} , len {}".format(self.ring[i]['id'] , len(somechain[i].chain)))
             return
 
         if(changed):
-            print("chain changed for node {} my chain length was {}".format(self.id, len(self.chain.chain)))
-            print("Other chain lengths are:")
-            for i in range(len(somechain)):
-                print("\t node {} , len {}".format(self.ring[i]['id'] , len(somechain[i].chain)))
-            print(k, len(self.ring), len(somechain))
-            print("selected node {} , len {}".format(self.ring[k]['id'] , len(somechain[k].chain)))
             self.chain = somechain[k]
-            # self.current_block = self.create_new_block(current_block.index + 1, current_block.currentHash_hex, 0, time.time(), current_block.difficulty, current_block.capacity)
-            # self.previous_block = previous_block
             self.current_NBCs = current_NBCs[k]
             self.NBCs = NBCs[k]
             self.validated_transactions = vt[k]
-
-        print("new chain is")
-        self.chain.printMe()
-        # try:
-        #     self.all_lock.release()
-        # except:
-        #     pass
-
         return

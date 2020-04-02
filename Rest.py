@@ -28,7 +28,6 @@ app = Flask(__name__)
 CORS(app)
 blockchain = Blockchain()
 
-#.......................................................................................
 
 def makeRSAjsonSendable(rsa):
     return rsa.exportKey("PEM").decode('ascii')
@@ -47,9 +46,7 @@ def read_transaction():
                 print("Wallet UTXO's: ", node.NBCs[node.id][0])
             elif input1 == "help":
                 print("t <recipient_address> <amount>   New transaction: Sends to recipient_address wallet, amount NBC coins from wallet sender_address.")
-                #Θα καλεί συνάρτηση create_transaction στο backend που θα υλοποιεί την παραπάνω λειτουργία.
                 print("view                             View last transactions: Displays the transactions contained in the last validated block.")
-                #Καλεί τη συνάρτηση view_transactions() στο backend που υλοποιεί την παραπάνω λειτουργία
                 print("balance                          Show balance: Displays wallet UTXOs.")
             else:
                 message = "'" + input1 + "'"
@@ -71,21 +68,14 @@ def read_transaction():
                 except:
                     print (message, "except is not recognized as a command. Please type 'help' to see all the valid commands")
     else:
-        # time.sleep(2)
-        print("Reading input transactions from txt")
-        f = open("3nodes_small/transactions" + str(node.id) + ".txt", "r")
-        print(node.ring)
+        f = open("5nodes/transactions" + str(node.id) + ".txt", "r")
         for line in f:
             id, amount = (line).split()
             for n in node.ring:
                 if int(n['id']) == int(id[-1]):
-                    # time.sleep(1)
-                    # print("LINE", line)
-                    # start_new_thread(node.create_transaction, (node.wallet.address, node.wallet.private_key, n['public_key'], int(amount),))
                     node.create_transaction(node.wallet.address, node.wallet.private_key, n['public_key'], int(amount))
                     break
 
-# get all transactions in the blockchain
 
 @app.route('/transactions/get', methods=['GET'])
 def get_transactions():
@@ -96,7 +86,6 @@ def get_transactions():
 
 @app.route('/UpdateRing', methods=['POST'])
 def UpdateRing():
-    # print("request", request.json)
     if request is None:
         return "Error: Please supply a valid Ring", 400
     data = request.json
@@ -107,10 +96,6 @@ def UpdateRing():
     for r in ring:
         r1 = r
         r1['public_key'] = makejsonSendableRSA(r1['public_key'])
-        print(r1)
-        node.ring.append(r1)
-    # print("My ring was updated by bootstrap Node!")
-    # read_transaction()
     while(not(node.current_NBCs[-1][0] == 100 or node.NBCs[-1][0] == 100)):
         pass
     start_new_thread(read_transaction, ())
@@ -131,8 +116,6 @@ def AddBlock():
         if(valid):
             node.chain.add_block_to_chain(block)
 
-            # node.previous_block = block
-            # node.current_block = node.create_new_block(block.index + 1, block.currentHash_hex, 0, time.time(), block.difficulty, block.capacity)
             for t in block.listOfTransactions:
                 outputs = t.transaction_outputs
                 id = outputs[0][1]
@@ -146,17 +129,12 @@ def AddBlock():
             for tran_iter in block.listOfTransactions:
                 node.completed_transactions.append(tran_iter)
         else:
-            # start_new_thread(node.resolve_conflicts,())
             node.resolve_conflicts()
     return "OK", 200
 
 
 @app.route('/ValidateTransaction', methods=['POST'])
 def ValidateTransaction():
-    # if(node.id == 1):
-    #     print("Node 1 sleeping")
-    #     time.sleep(5)
-    # print("request", request.json)
     if request is None:
         return "Error: Please supply a valid Transaction", 400
     data = request.json
@@ -164,7 +142,6 @@ def ValidateTransaction():
         return "Error: Please supply a valid Transaction", 400
 
     transaction = jsonpickle.decode(data["transaction"])
-    # node.all_lock.acquire()
     valid = node.validate_transaction(transaction)
     if(valid):
         node.add_transaction_to_block(transaction)
@@ -183,7 +160,6 @@ def ContactBootstrapNode(baseurl, host, port):
     load = {'public_key': makeRSAjsonSendable(public_key), 'ip': host, 'port': port }
     r = requests.post(baseurl + "nodes/register", json = load)
     if(not r.status_code == 200):
-        print(r.text)
         exit(1)
     rejson = r.json()
     myid = rejson["id"]
@@ -198,16 +174,12 @@ def ContactBootstrapNode(baseurl, host, port):
     node.myport = port
     rejson['start_ring']['public_key'] = makejsonSendableRSA(rejson['start_ring']['public_key'])
     node.ring.append(rejson['start_ring'])
-    # print("I am node with ip {} and my unique id is {}!".format(host, node.id))
 
     blockchain = jsonpickle.decode(rejson["blockchain"])
     node.chain = blockchain
-    # node.validate_chain(blockchain)
-    #if(len(blockchain.chain) == 1):
     node.previous_block = None
     node.current_block = jsonpickle.decode(rejson["current_block"])
 
-    # print("Now I can create transactions!")
 @app.route('/Chain', methods=['GET'])
 def Chain():
     return {'chain': jsonpickle.encode(node.chain), 'id': node.id, 'previous_block': jsonpickle.encode(node.previous_block), 'current_block': jsonpickle.encode(node.current_block), 'current_NBCs': node.current_NBCs, 'NBCs': node.NBCs , 'VT': jsonpickle.encode(node.validated_transactions)}
@@ -228,8 +200,8 @@ if __name__ == '__main__':
     from argparse import ArgumentParser
     node = Node()
 
-    baseurl = 'http://{}:{}/'.format("127.0.0.1","5000")
-    host = sys.argv[1]
+    baseurl = 'http://{}:{}/'.format("192.168.1.5","5000")
+    host = '192.168.1.4'
     port = 5000
     ContactBootstrapNode(baseurl, host, port)
-    app.run(host=host, port=port, debug=True, use_reloader=False)
+    app.run(host=host, port=port, debug=False, use_reloader=False)
